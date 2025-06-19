@@ -201,36 +201,34 @@
 
         // Генерация ответа через Ollama
         async function generateWithAI(prompt) {
-            try {
-                const response = await fetch("http://localhost:11434/api/generate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        model: "llama3",
-                        prompt: `
-                            Ты — ${userData.style}, персональный тренер по бегу. 
-                            Пользователь: ${userData.name}, цель: ${userData.frequency} пробежек в неделю.
-                            Мотивация: ${userData.motivation}.
-                            Ответь кратко (1-2 предложения) в своём стиле на вопрос: ${prompt}
-                        `,
-                        stream: false
-                    })
-                });
+        try {
+            const response = await fetch("/api/proxy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    prompt: `
+                        Ты — ${userData.style}, персональный тренер по бегу. 
+                        Пользователь: ${userData.name}, цель: ${userData.frequency} пробежек в неделю.
+                        Мотивация: ${userData.motivation}.
+                        Ответь кратко (1-2 предложения) в своём стиле на вопрос: ${prompt}
+                    `,
+                    stream: false
+                })
+            });
 
-                const data = await response.json();
-                return data.response || "Не получилось сгенерировать ответ...";
-
-            } catch (error) {
-                console.error("Ошибка запроса к Ollama:", error);
-                const fallbackResponses = {
-                    "Железный Наставник": `${userData.name}, беги без вопросов!`,
-                    "Энерджайзер-Зажигалка": `Давай, ${userData.name}, ты сможешь! 💪`,
-                    "Спокойный Мудрец": "Бег — это путь к гармонии.",
-                    "АБСОЛЮТНЫЙ ДОМИНАТОР": "БЕГИ ИЛИ УМРИ!"
-                };
-                return fallbackResponses[userData.style] || "Давай обсудим тренировки.";
-            }
+            const data = await response.json();
+            return data.response || "Не получилось сгенерировать ответ...";
+        } catch (error) {
+            console.error("Ошибка запроса к прокси Ollama:", error);
+            const fallbackResponses = {
+                "Железный Наставник": `${userData.name}, беги без вопросов!`,
+                "Энерджайзер-Зажигалка": `Давай, ${userData.name}, ты сможешь! 💪`,
+                "Спокойный Мудрец": "Бег — это путь к гармонии.",
+                "АБСОЛЮТНЫЙ ДОМИНАТОР": "БЕГИ ИЛИ УМРИ!"
+            };
+            return fallbackResponses[userData.style] || "Давай обсудим тренировки.";
         }
+    }
 
         // Добавление сообщения в чат
         function addMessage(sender, text) {
