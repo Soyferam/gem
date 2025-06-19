@@ -224,27 +224,59 @@
 
         // Генерация ответа через Gemini
         async function generateWithGemini(prompt) {
-            const apiKey = "AIzaSyBc0H7Mf_6KQYjtWirH2h0oaPrTuKOILJ8";
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-            
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: prompt }]
-                        }]
-                    })
-                });
-                
-                const data = await response.json();
-                return data.candidates[0].content.parts[0].text;
-            } catch (error) {
-                console.error('Ошибка Gemini:', error);
-                return "Извините, произошла ошибка. Попробуйте еще раз.";
-            }
+    const apiKey = "AIzaSyBc0H7Mf_6KQYjtWirH2h0oaPrTuKOILJ8";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: prompt }]
+                }],
+                safetySettings: [{
+                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold: "BLOCK_NONE"
+                }],
+                generationConfig: {
+                    temperature: 0.9,
+                    topP: 1,
+                    maxOutputTokens: 2048
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Ошибка API:", errorData);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+        
+        // Добавляем проверку структуры ответа
+        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
+            console.error("Неожиданная структура ответа:", data);
+            throw new Error("Неверная структура ответа от API");
+        }
+
+        return data.candidates[0].content.parts[0].text || "Не получилось сгенерировать ответ";
+        
+    } catch (error) {
+        console.error("Полная ошибка Gemini:", error);
+        
+        // Резервные ответы по стилям
+        const fallbackResponses = {
+            "Железный Наставник": `${userData.name}, сосредоточься! Тебе нужно бегать ${userData.frequency} в неделю. Без оправданий!`,
+            "Энерджайзер-Зажигалка": `Ура, ${userData.name}! 🎉 Давай начнем наши ${userData.frequency} потрясающие пробежки!`,
+            "Спокойный Мудрец": `${userData.name}, бег - это путь к гармонии. Начнем с ${userData.frequency} пробежек в неделю.`,
+            "АБСОЛЮТНЫЙ ДОМИНАТОР": `${userData.name.toUpperCase()}, ТЫ ВЫБРАЛ(А) ЖЕСТКИЙ РЕЖИМ. ${userData.frequency.toUpperCase()} ПРОБЕЖКИ В НЕДЕЛЮ ИЛИ ТЫ НИЧТО!`
+        };
+        
+        return fallbackResponses[userData.style] || "Давай обсудим твои тренировки.";
+    }
+}
 
         // Завершение квиза
         async function finishQuiz() {
