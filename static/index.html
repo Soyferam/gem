@@ -142,7 +142,7 @@
         document.getElementById("text-answer").focus();
       } else {
         document.getElementById("text-answer").style.display = "none";
-        step.options.forEach(option => {
+        step.options.forEach((option) => {
           const button = document.createElement("button");
           button.textContent = option;
           button.onclick = () => {
@@ -168,7 +168,7 @@
 
     async function generateWithAI(prompt) {
       try {
-        onst response = await fetch("http://localhost:4000/api/proxy", {
+        const response = await fetch("http://localhost:4000/api/proxy", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -178,7 +178,7 @@
               Мотивация: ${userData.motivation}.
               Ответь кратко (1-2 предложения) в своём стиле на вопрос: ${prompt}
             `,
-            stream: false
+            stream: false,
           }),
         });
 
@@ -190,7 +190,7 @@
           "Железный Наставник": `${userData.name}, беги без вопросов!`,
           "Энерджайзер-Зажигалка": `Давай, ${userData.name}, ты сможешь! 💪`,
           "Спокойный Мудрец": "Бег — это путь к гармонии.",
-          "АБСОЛЮТНЫЙ ДОМИНАТОР": "БЕГИ ИЛИ УМРИ!"
+          "АБСОЛЮТНЫЙ ДОМИНАТОР": "БЕГИ ИЛИ УМРИ!",
         };
         return fallback[userData.style] || "Давай обсудим тренировки.";
       }
@@ -237,11 +237,11 @@
       addMessage("ai", response);
     });
 
-    document.getElementById("user-message").addEventListener("keypress", e => {
+    document.getElementById("user-message").addEventListener("keypress", (e) => {
       if (e.key === "Enter") document.getElementById("send-button").click();
     });
 
-    document.getElementById("text-answer").addEventListener("keypress", e => {
+    document.getElementById("text-answer").addEventListener("keypress", (e) => {
       if (e.key === "Enter" && e.target.value.trim()) saveAnswer(e.target.value.trim());
     });
 
