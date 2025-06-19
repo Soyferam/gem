@@ -6,9 +6,99 @@
     <title>Healthie Quiz</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Ваши стили остаются без изменений */
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background: #f5f5f5; }
-        /* ... остальные стили ... */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        #question {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #0088cc;
+        }
+        #answers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 12px;
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #006699;
+        }
+        input {
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.3);
+            border-radius: 50%;
+            border-top-color: #0088cc;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        #chat-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .ai-message {
+            background: #e3f2fd;
+            align-self: flex-start;
+        }
+        .user-message {
+            background: #dcf8c6;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+        #user-input {
+            display: flex;
+            gap: 10px;
+        }
+        #user-message {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        #send-button {
+            min-width: 100px;
+        }
     </style>
 </head>
 <body>
@@ -32,10 +122,39 @@
 
         // Данные квиза
         const quiz = [
-            { question: "!Давай знакомиться! Как тебя зовут?", type: "text", key: "name" },
-            { question: "Сколько раз в неделю ты хочешь бегать?", type: "choice", options: ["1 раз", "2 раза", "3 раза", "Больше 3 раз"], key: "frequency" },
-            { question: "Что тебя мотивирует?", type: "choice", options: ["Почувствовать прилив энергии", "Снять стресс", "Улучшить физическую форму", "Другое (напишу)"], key: "motivation" },
-            { question: "Выбери стиль коуча:", type: "style", options: ["Железный Наставник", "Энерджайзер-Зажигалка", "Спокойный Мудрец", "АБСОЛЮТНЫЙ ДОМИНАТОР (будет жестко!)"], key: "style" }
+            { 
+                question: "!Давай знакомиться! Как тебя зовут?", 
+                type: "text", 
+                key: "name" 
+            },
+            { 
+                question: "Сколько раз в неделю ты хочешь бегать?", 
+                type: "choice", 
+                options: ["1 раз", "2 раза", "3 раза", "Больше 3 раз"], 
+                key: "frequency" 
+            },
+            { 
+                question: "Что тебя мотивирует?", 
+                type: "choice", 
+                options: [
+                    "Почувствовать прилив энергии", 
+                    "Снять стресс", 
+                    "Улучшить физическую форму",
+                    "Другое (напишу)"
+                ], 
+                key: "motivation" 
+            },
+            { 
+                question: "Выбери стиль коуча:", 
+                type: "style", 
+                options: [
+                    "Железный Наставник", 
+                    "Энерджайзер-Зажигалка", 
+                    "Спокойный Мудрец",
+                    "АБСОЛЮТНЫЙ ДОМИНАТОР (будет жестко!)"
+                ], 
+                key: "style" 
+            }
         ];
 
         let currentStep = 0;
@@ -80,10 +199,10 @@
             }
         }
 
-        // Генерация ответа через прокси к Ollama
+        // Генерация ответа через Ollama
         async function generateWithAI(prompt) {
             try {
-                const response = await fetch("/api/proxy", {
+                const response = await fetch("http://localhost:11434/api/generate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -102,7 +221,7 @@
                 return data.response || "Не получилось сгенерировать ответ...";
 
             } catch (error) {
-                console.error("Ошибка запроса:", error);
+                console.error("Ошибка запроса к Ollama:", error);
                 const fallbackResponses = {
                     "Железный Наставник": `${userData.name}, беги без вопросов!`,
                     "Энерджайзер-Зажигалка": `Давай, ${userData.name}, ты сможешь! 💪`,
