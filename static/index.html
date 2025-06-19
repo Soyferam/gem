@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Healthie Quiz</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
@@ -104,14 +104,14 @@
 <body>
   <div id="quiz">
     <h1 id="question"></h1>
-    <input type="text" id="text-answer" placeholder="Введите ответ..." style="display: none;">
+    <input type="text" id="text-answer" placeholder="Введите ответ..." style="display: none;" />
     <div id="answers"></div>
   </div>
 
   <div id="chat-container">
     <div id="chat-messages"></div>
     <div id="user-input">
-      <input type="text" id="user-message" placeholder="Напишите сообщение...">
+      <input type="text" id="user-message" placeholder="Напишите сообщение..." />
       <button id="send-button">Отправить</button>
     </div>
   </div>
@@ -179,7 +179,7 @@
               Ответь кратко (1-2 предложения) в своём стиле на вопрос: ${prompt}
             `,
             stream: false
-          })
+          }),
         });
 
         const data = await response.json();
