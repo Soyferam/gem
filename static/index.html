@@ -63,11 +63,42 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        #status-message {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 10px;
-            text-align: center;
+        #chat-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .ai-message {
+            background: #e3f2fd;
+            align-self: flex-start;
+        }
+        .user-message {
+            background: #dcf8c6;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        #user-input {
+            display: flex;
+            gap: 10px;
+        }
+        #user-message {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
         }
     </style>
 </head>
@@ -76,6 +107,14 @@
         <h1 id="question"></h1>
         <input type="text" id="text-answer" placeholder="Введите ответ..." style="display: none;">
         <div id="answers"></div>
+    </div>
+
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <div id="user-input">
+            <input type="text" id="user-message" placeholder="Напишите сообщение...">
+            <button id="send-button">Отправить</button>
+        </div>
     </div>
 
     <script>
@@ -121,6 +160,7 @@
 
         let currentStep = 0;
         const userData = {};
+        const chatMessages = [];
 
         // Показываем текущий вопрос
         function showQuestion() {
@@ -183,18 +223,7 @@
         }
 
         // Генерация ответа через Gemini
-        async function generateWithGemini() {
-            const prompt = `
-                Пользователь ${userData.name} выбрал:
-                - Стиль коуча: ${userData.style}
-                - Частота пробежек: ${userData.frequency}
-                - Мотивация: ${userData.motivation}
-                
-                Напиши персональное мотивирующее сообщение в выбранном стиле.
-                Для стиля "АБСОЛЮТНЫЙ ДОМИНАТОР" используй жесткий тон без мата.
-                Сообщение должно быть на русском, не длиннее 3 предложений.
-            `;
-            
+        async function generateWithGemini(prompt) {
             const apiKey = "AIzaSyBc0H7Mf_6KQYjtWirH2h0oaPrTuKOILJ8";
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
             
@@ -213,7 +242,7 @@
                 return data.candidates[0].content.parts[0].text;
             } catch (error) {
                 console.error('Ошибка Gemini:', error);
-                return `Привет, ${userData.name}! Готов начать тренировки в стиле ${userData.style}.`;
+                return "Извините, произошла ошибка. Попробуйте еще раз.";
             }
         }
 
@@ -228,72 +257,106 @@
             
             try {
                 await saveUserData();
-                const aiResponse = await generateWithGemini();
+                const welcomeMessage = await generateWelcomeMessage();
                 
-                document.getElementById("quiz").innerHTML = `
-                    <h1>${userData.name}, твой план готов!</h1>
-                    <div class="ai-response">
-                        ${aiResponse}
-                    </div>
-                    <p>Стиль: <strong>${userData.style}</strong></p>
-                    <p>Частота пробежек: <strong>${userData.frequency}</strong></p>
-                    <button onclick="sendData()" style="background: #4CAF50;">Начать тренировки!</button>
-                    <p id="status-message"></p>
-                `;
+                // Показываем чат вместо завершающего сообщения
+                document.getElementById("quiz").style.display = "none";
+                document.getElementById("chat-container").style.display = "block";
+                
+                addAiMessage(welcomeMessage);
             } catch (error) {
                 document.getElementById("quiz").innerHTML = `
-                    <h1>${userData.name}, твой план готов!</h1>
-                    <div class="ai-response">
-                        Привет! Начинаем тренировки в стиле ${userData.style}.
-                        Твоя цель: бегать ${userData.frequency} в неделю.
-                    </div>
-                    <button onclick="sendData()" style="background: #4CAF50;">Начать!</button>
-                    <p id="status-message"></p>
+                    <h1>Ошибка</h1>
+                    <p>${error.message}</p>
+                    <button onclick="location.reload()">Попробовать снова</button>
                 `;
                 console.error("Ошибка завершения квиза:", error);
             }
         }
 
-        // Отправляем данные в бота (ИСПРАВЛЕННАЯ ВЕРСИЯ)
-        function sendData() {
-            const statusElement = document.getElementById("status-message");
-            const button = document.querySelector('button[onclick="sendData()"]');
+        // Генерация приветственного сообщения
+        async function generateWelcomeMessage() {
+            const prompt = `Ты - ${userData.style}. Напиши приветственное сообщение для ${userData.name}, который хочет бегать ${userData.frequency} в неделю. 
+            Мотивация: ${userData.motivation}. Сообщение должно быть в выбранном стиле, не длиннее 3 предложений.`;
             
-            // Блокируем кнопку и показываем статус
-            button.disabled = true;
-            button.innerHTML = '<span class="loading"></span> Отправка...';
-            statusElement.textContent = "Отправляем данные...";
-            
-            // Формируем финальные данные
-            const finalData = {
-                name: userData.name,
-                style: userData.style,
-                frequency: userData.frequency,
-                motivation: userData.motivation,
-                userId: tg.initDataUnsafe.user?.id || 'anonymous',
-                timestamp: new Date().toISOString(),
-                status: "quiz_completed"
-            };
+            return await generateWithGemini(prompt);
+        }
 
-            // Отправляем данные в Telegram
+        // Добавление сообщения AI в чат
+        function addAiMessage(text) {
+            chatMessages.push({ sender: 'ai', text });
+            updateChat();
+        }
+
+        // Добавление сообщения пользователя в чат
+        function addUserMessage(text) {
+            chatMessages.push({ sender: 'user', text });
+            updateChat();
+        }
+
+        // Обновление отображения чата
+        function updateChat() {
+            const chatDiv = document.getElementById("chat-messages");
+            chatDiv.innerHTML = '';
+            
+            chatMessages.forEach(msg => {
+                const messageDiv = document.createElement("div");
+                messageDiv.className = `message ${msg.sender}-message`;
+                messageDiv.textContent = msg.text;
+                chatDiv.appendChild(messageDiv);
+            });
+            
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        // Отправляем данные в бота
+        function sendData() {
+            const finalData = {
+                ...userData,
+                chatHistory: chatMessages,
+                timestamp: new Date().toISOString()
+            };
+            
             tg.sendData(JSON.stringify(finalData));
-            
-            // Обновляем статус
-            statusElement.textContent = "Данные успешно отправлены!";
-            button.textContent = "✓ Готово";
-            
-            // Показываем подтверждение и закрываем через 2 секунды
-            setTimeout(() => {
-                tg.showAlert("Отлично! Скоро начнем тренировки!", () => {
-                    tg.close();
-                });
-            }, 2000);
+            tg.close();
         }
 
         // Обработка текстового ввода
         document.getElementById("text-answer").addEventListener("keypress", (e) => {
             if (e.key === "Enter" && e.target.value.trim()) {
                 saveAnswer(e.target.value.trim());
+            }
+        });
+
+        // Обработка отправки сообщения в чате
+        document.getElementById("send-button").addEventListener("click", async () => {
+            const input = document.getElementById("user-message");
+            const message = input.value.trim();
+            
+            if (message) {
+                addUserMessage(message);
+                input.value = '';
+                
+                // Показываем индикатор набора сообщения
+                const typingIndicator = document.createElement("div");
+                typingIndicator.className = "message ai-message";
+                typingIndicator.innerHTML = '<span class="loading"></span>';
+                document.getElementById("chat-messages").appendChild(typingIndicator);
+                
+                // Генерируем ответ
+                const prompt = `Ты - ${userData.style}. Пользователь ${userData.name} написал: "${message}". Ответь в своем стиле.`;
+                const response = await generateWithGemini(prompt);
+                
+                // Убираем индикатор и добавляем ответ
+                document.getElementById("chat-messages").removeChild(typingIndicator);
+                addAiMessage(response);
+            }
+        });
+
+        // Обработка Enter в поле ввода чата
+        document.getElementById("user-message").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                document.getElementById("send-button").click();
             }
         });
 
