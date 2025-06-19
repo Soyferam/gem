@@ -1,6 +1,11 @@
 {
   "version": 2,
-  "public": "static",
+  "builds": [
+    {
+      "src": "static/**",
+      "use": "@vercel/static"
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
