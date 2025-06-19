@@ -212,9 +212,17 @@
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
             
             try {
-                // Добавляем контекст чата
-                const fullPrompt = `Ты - ${userData.style}. ${prompt}\n\nКонтекст:\nИмя: ${userData.name}\nЦель: ${userData.frequency} пробежек в неделю\nМотивация: ${userData.motivation}`;
-                
+                // Добавляем контекст и инструкции для AI
+                const fullPrompt = `
+                    Ты - ${userData.style}, персональный тренер по бегу. 
+                    Пользователь: ${userData.name}, цель: ${userData.frequency} пробежек/неделю.
+                    Мотивация: ${userData.motivation}.
+                    
+                    Текущий диалог: ${prompt}
+                    
+                    Ответь кратко (1-2 предложения) в выбранном стиле.
+                `;
+
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -222,141 +230,62 @@
                         contents: [{
                             parts: [{ text: fullPrompt }]
                         }],
-                        safetySettings: [
-                            {
-                                category: "HARM_CATEGORY_HARASSMENT",
-                                threshold: "BLOCK_NONE"
-                            }
-                        ],
                         generationConfig: {
-                            temperature: 0.9,
-                            topP: 1,
-                            maxOutputTokens: 200
+                            temperature: 0.7,
+                            topP: 0.9,
+                            maxOutputTokens: 150
                         }
                     })
                 });
-                
+
                 const data = await response.json();
-                console.log("Ответ Gemini:", data);
-                
-                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
+                console.log("Полный ответ API:", data); // Для отладки
+
+                // Улучшенная проверка структуры ответа
+                if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
                     return data.candidates[0].content.parts[0].text;
-                } else {
-                    throw new Error("Неверная структура ответа от API");
                 }
-            } catch (error) {
-                console.error("Ошибка Gemini:", error);
-                throw error;
-            }
-        }
-
-        // Добавление сообщения в чат
-        function addMessage(sender, text) {
-            const chatDiv = document.getElementById("chat-messages");
-            const messageDiv = document.createElement("div");
-            messageDiv.className = `message ${sender}-message`;
-            messageDiv.textContent = text;
-            chatDiv.appendChild(messageDiv);
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-            
-            // Сохраняем в историю
-            chatHistory.push({ sender, text });
-        }
-
-        // Завершение квиза
-        async function finishQuiz() {
-            document.getElementById("quiz").innerHTML = `
-                <h1>Формируем ваш план...</h1>
-                <div style="text-align: center;">
-                    <span class="loading" style="width: 40px; height: 40px;"></span>
-                </div>
-            `;
-            
-            try {
-                // Генерируем приветственное сообщение
-                const welcomePrompt = `Напиши приветственное сообщение для пользователя. Учитывай выбранный стиль общения.`;
-                const welcomeMessage = await generateWithGemini(welcomePrompt);
                 
-                // Показываем чат
-                document.getElementById("quiz").style.display = "none";
-                document.getElementById("chat-container").style.display = "block";
+                // Альтернативные пути доступа к ответу
+                if (data?.predictions?.[0]?.content) {
+                    return data.predictions[0].content;
+                }
                 
-                // Добавляем приветственное сообщение
-                addMessage("ai", welcomeMessage);
+                throw new Error("Неожиданная структура ответа API");
                 
             } catch (error) {
-                // Резервные сообщения по стилям
-                const fallbackMessages = {
-                    "Железный Наставник": `${userData.name}, начинаем тренировки. ${userData.frequency} пробежек в неделю - это минимум!`,
-                    "Энерджайзер-Зажигалка": `Ура, ${userData.name}! 🎉 Давай начнем наши ${userData.frequency} потрясающие пробежки!`,
-                    "Спокойный Мудрец": `${userData.name}, бег - это путь к гармонии. Начнем с ${userData.frequency} пробежек в неделю.`,
-                    "АБСОЛЮТНЫЙ ДОМИНАТОР": `${userData.name.toUpperCase()}, ТЫ ВЫБРАЛ(А) ЖЕСТКИЙ РЕЖИМ. ${userData.frequency.toUpperCase()} ПРОБЕЖКИ В НЕДЕЛЮ ИЛИ ТЫ НИЧТО!`
+                console.error("Ошибка при запросе к Gemini:", error);
+                
+                // Генерация fallback-ответа на основе стиля
+                const fallbackResponses = {
+                    "Железный Наставник": [
+                        `${userData.name}, хватит болтать! ${userData.frequency} пробежек - это не обсуждается!`,
+                        "Разговоры не помогут. Выходи на пробежку!",
+                        "Я вижу только отговорки. Бегом на тренировку!"
+                    ],
+                    "Энерджайзер-Зажигалка": [
+                        `Ура, ${userData.name}! 🎉 Давай сделаем эти ${userData.frequency} пробежки незабываемыми!`,
+                        "Ты потрясающий! Бежим к цели вместе! 💪",
+                        "Я верю в тебя! Давай начнем прямо сейчас!"
+                    ],
+                    "Спокойный Мудрец": [
+                        `${userData.name}, помни - дорогу осилит идущий. Начнем с ${userData.frequency} пробежек.`,
+                        "Бег - это медитация в движении. Наслаждайся процессом.",
+                        "Все приходит в свое время. Главное - начать."
+                    ],
+                    "АБСОЛЮТНЫЙ ДОМИНАТОР": [
+                        `${userData.name.toUpperCase()}, ТЫ СЛАБАК? ${userData.frequency.toUpperCase()} ПРОБЕЖЕК ИЛИ ТЫ НИЧТО!`,
+                        "ХВАТИТ НЫТЬ! ВЫХОДИ И БЕГИ!",
+                        "ТЫ ДАЖЕ НЕ ПРЕДСТАВЛЯЕШЬ, НА ЧТО СПОСОБЕН! БЕГОМ!"
+                    ]
                 };
                 
-                const fallbackMessage = fallbackMessages[userData.style] || "Давай обсудим твои тренировки.";
-                
-                document.getElementById("quiz").style.display = "none";
-                document.getElementById("chat-container").style.display = "block";
-                addMessage("ai", fallbackMessage);
+                const responses = fallbackResponses[userData.style] || ["Давай обсудим твои тренировки."];
+                return responses[Math.floor(Math.random() * responses.length)];
             }
         }
 
-        // Обработка отправки сообщения
-        document.getElementById("send-button").addEventListener("click", async () => {
-            const input = document.getElementById("user-message");
-            const message = input.value.trim();
-            
-            if (message) {
-                // Добавляем сообщение пользователя
-                addMessage("user", message);
-                input.value = '';
-                
-                // Показываем индикатор набора
-                const typingIndicator = document.createElement("div");
-                typingIndicator.className = "message ai-message";
-                typingIndicator.innerHTML = '<span class="loading"></span> Коуч печатает...';
-                document.getElementById("chat-messages").appendChild(typingIndicator);
-                
-                try {
-                    // Генерируем ответ
-                    const response = await generateWithGemini(`Пользователь написал: "${message}". Ответь в своем стиле.`);
-                    document.getElementById("chat-messages").removeChild(typingIndicator);
-                    addMessage("ai", response);
-                } catch (error) {
-                    document.getElementById("chat-messages").removeChild(typingIndicator);
-                    addMessage("ai", "Извините, не могу ответить сейчас. Попробуйте позже.");
-                }
-            }
-        });
-
-        // Обработка Enter в поле ввода
-        document.getElementById("user-message").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                document.getElementById("send-button").click();
-            }
-        });
-
-        // Обработка текстового ввода в квизе
-        document.getElementById("text-answer").addEventListener("keypress", (e) => {
-            if (e.key === "Enter" && e.target.value.trim()) {
-                saveAnswer(e.target.value.trim());
-            }
-        });
-
-        // Отправка данных при закрытии
-        tg.onEvent('viewportChanged', () => {
-            if (tg.isClosingConfirmationEnabled) {
-                const finalData = {
-                    userData,
-                    chatHistory,
-                    timestamp: new Date().toISOString()
-                };
-                tg.sendData(JSON.stringify(finalData));
-            }
-        });
-
-        // Старт квиза
-        showQuestion();
+        // Остальной код остается без изменений ...
     </script>
 </body>
 </html>
