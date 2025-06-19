@@ -1,20 +1,22 @@
 import express from "express";
+import cors from "cors";
 import fetch from "node-fetch";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const app = express();
-const PORT = 4000;
-
+const PORT = process.env.PORT || 4000;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Отдаём статические файлы из папки static
+// Разрешаем CORS для всех доменов (можно указать конкретные origin)
+app.use(cors());
+
 app.use(express.static(path.join(__dirname, "static")));
 app.use(express.json());
 
-// Прокси для Ollama
+// Прокси-эндпоинт для Ollama
 app.post("/api/proxy", async (req, res) => {
   const { prompt, stream = false } = req.body;
 
@@ -25,8 +27,8 @@ app.post("/api/proxy", async (req, res) => {
       body: JSON.stringify({
         model: "llama3",
         prompt,
-        stream
-      })
+        stream,
+      }),
     });
 
     const data = await response.json();
@@ -38,5 +40,5 @@ app.post("/api/proxy", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Сервер работает: http://localhost:${PORT}`);
+  console.log(`🚀 Сервер работает на http://localhost:${PORT}`);
 });
