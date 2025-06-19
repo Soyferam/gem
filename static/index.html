@@ -89,6 +89,9 @@
             max-height: 300px;
             overflow-y: auto;
             margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
         }
         #user-input {
             display: flex;
@@ -99,6 +102,9 @@
             padding: 10px;
             border-radius: 8px;
             border: 1px solid #ddd;
+        }
+        #send-button {
+            min-width: 100px;
         }
     </style>
 </head>
@@ -160,7 +166,7 @@
 
         let currentStep = 0;
         const userData = {};
-        const chatMessages = [];
+        const chatHistory = [];
 
         // Показываем текущий вопрос
         function showQuestion() {
@@ -200,83 +206,62 @@
             }
         }
 
-        // Сохранение данных пользователя
-        async function saveUserData() {
-            userData.userId = tg.initDataUnsafe.user?.id || 'anonymous';
-            userData.date = new Date().toISOString();
+        // Генерация ответа через Gemini
+        async function generateWithGemini(prompt) {
+            const apiKey = "AIzaSyBc0H7Mf_6KQYjtWirH2h0oaPrTuKOILJ8";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
             
             try {
-                const response = await fetch('/api/save-user', {
+                // Добавляем контекст чата
+                const fullPrompt = `Ты - ${userData.style}. ${prompt}\n\nКонтекст:\nИмя: ${userData.name}\nЦель: ${userData.frequency} пробежек в неделю\nМотивация: ${userData.motivation}`;
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(userData)
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: fullPrompt }]
+                        }],
+                        safetySettings: [
+                            {
+                                category: "HARM_CATEGORY_HARASSMENT",
+                                threshold: "BLOCK_NONE"
+                            }
+                        ],
+                        generationConfig: {
+                            temperature: 0.9,
+                            topP: 1,
+                            maxOutputTokens: 200
+                        }
+                    })
                 });
                 
-                if (!response.ok) {
-                    throw new Error('Ошибка сервера');
+                const data = await response.json();
+                console.log("Ответ Gemini:", data);
+                
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) {
+                    return data.candidates[0].content.parts[0].text;
+                } else {
+                    throw new Error("Неверная структура ответа от API");
                 }
-                return await response.json();
             } catch (error) {
-                console.error('Ошибка сохранения:', error);
-                return { success: false, error: error.message };
+                console.error("Ошибка Gemini:", error);
+                throw error;
             }
         }
 
-        // Генерация ответа через Gemini
-        async function generateWithGemini(prompt) {
-    const apiKey = "AIzaSyBc0H7Mf_6KQYjtWirH2h0oaPrTuKOILJ8";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-    
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: prompt }]
-                }],
-                safetySettings: [{
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold: "BLOCK_NONE"
-                }],
-                generationConfig: {
-                    temperature: 0.9,
-                    topP: 1,
-                    maxOutputTokens: 2048
-                }
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Ошибка API:", errorData);
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Добавление сообщения в чат
+        function addMessage(sender, text) {
+            const chatDiv = document.getElementById("chat-messages");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = text;
+            chatDiv.appendChild(messageDiv);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+            
+            // Сохраняем в историю
+            chatHistory.push({ sender, text });
         }
-
-        const data = await response.json();
-        
-        // Добавляем проверку структуры ответа
-        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
-            console.error("Неожиданная структура ответа:", data);
-            throw new Error("Неверная структура ответа от API");
-        }
-
-        return data.candidates[0].content.parts[0].text || "Не получилось сгенерировать ответ";
-        
-    } catch (error) {
-        console.error("Полная ошибка Gemini:", error);
-        
-        // Резервные ответы по стилям
-        const fallbackResponses = {
-            "Железный Наставник": `${userData.name}, сосредоточься! Тебе нужно бегать ${userData.frequency} в неделю. Без оправданий!`,
-            "Энерджайзер-Зажигалка": `Ура, ${userData.name}! 🎉 Давай начнем наши ${userData.frequency} потрясающие пробежки!`,
-            "Спокойный Мудрец": `${userData.name}, бег - это путь к гармонии. Начнем с ${userData.frequency} пробежек в неделю.`,
-            "АБСОЛЮТНЫЙ ДОМИНАТОР": `${userData.name.toUpperCase()}, ТЫ ВЫБРАЛ(А) ЖЕСТКИЙ РЕЖИМ. ${userData.frequency.toUpperCase()} ПРОБЕЖКИ В НЕДЕЛЮ ИЛИ ТЫ НИЧТО!`
-        };
-        
-        return fallbackResponses[userData.style] || "Давай обсудим твои тренировки.";
-    }
-}
 
         // Завершение квиза
         async function finishQuiz() {
@@ -288,107 +273,85 @@
             `;
             
             try {
-                await saveUserData();
-                const welcomeMessage = await generateWelcomeMessage();
+                // Генерируем приветственное сообщение
+                const welcomePrompt = `Напиши приветственное сообщение для пользователя. Учитывай выбранный стиль общения.`;
+                const welcomeMessage = await generateWithGemini(welcomePrompt);
                 
-                // Показываем чат вместо завершающего сообщения
+                // Показываем чат
                 document.getElementById("quiz").style.display = "none";
                 document.getElementById("chat-container").style.display = "block";
                 
-                addAiMessage(welcomeMessage);
+                // Добавляем приветственное сообщение
+                addMessage("ai", welcomeMessage);
+                
             } catch (error) {
-                document.getElementById("quiz").innerHTML = `
-                    <h1>Ошибка</h1>
-                    <p>${error.message}</p>
-                    <button onclick="location.reload()">Попробовать снова</button>
-                `;
-                console.error("Ошибка завершения квиза:", error);
+                // Резервные сообщения по стилям
+                const fallbackMessages = {
+                    "Железный Наставник": `${userData.name}, начинаем тренировки. ${userData.frequency} пробежек в неделю - это минимум!`,
+                    "Энерджайзер-Зажигалка": `Ура, ${userData.name}! 🎉 Давай начнем наши ${userData.frequency} потрясающие пробежки!`,
+                    "Спокойный Мудрец": `${userData.name}, бег - это путь к гармонии. Начнем с ${userData.frequency} пробежек в неделю.`,
+                    "АБСОЛЮТНЫЙ ДОМИНАТОР": `${userData.name.toUpperCase()}, ТЫ ВЫБРАЛ(А) ЖЕСТКИЙ РЕЖИМ. ${userData.frequency.toUpperCase()} ПРОБЕЖКИ В НЕДЕЛЮ ИЛИ ТЫ НИЧТО!`
+                };
+                
+                const fallbackMessage = fallbackMessages[userData.style] || "Давай обсудим твои тренировки.";
+                
+                document.getElementById("quiz").style.display = "none";
+                document.getElementById("chat-container").style.display = "block";
+                addMessage("ai", fallbackMessage);
             }
         }
 
-        // Генерация приветственного сообщения
-        async function generateWelcomeMessage() {
-            const prompt = `Ты - ${userData.style}. Напиши приветственное сообщение для ${userData.name}, который хочет бегать ${userData.frequency} в неделю. 
-            Мотивация: ${userData.motivation}. Сообщение должно быть в выбранном стиле, не длиннее 3 предложений.`;
+        // Обработка отправки сообщения
+        document.getElementById("send-button").addEventListener("click", async () => {
+            const input = document.getElementById("user-message");
+            const message = input.value.trim();
             
-            return await generateWithGemini(prompt);
-        }
+            if (message) {
+                // Добавляем сообщение пользователя
+                addMessage("user", message);
+                input.value = '';
+                
+                // Показываем индикатор набора
+                const typingIndicator = document.createElement("div");
+                typingIndicator.className = "message ai-message";
+                typingIndicator.innerHTML = '<span class="loading"></span> Коуч печатает...';
+                document.getElementById("chat-messages").appendChild(typingIndicator);
+                
+                try {
+                    // Генерируем ответ
+                    const response = await generateWithGemini(`Пользователь написал: "${message}". Ответь в своем стиле.`);
+                    document.getElementById("chat-messages").removeChild(typingIndicator);
+                    addMessage("ai", response);
+                } catch (error) {
+                    document.getElementById("chat-messages").removeChild(typingIndicator);
+                    addMessage("ai", "Извините, не могу ответить сейчас. Попробуйте позже.");
+                }
+            }
+        });
 
-        // Добавление сообщения AI в чат
-        function addAiMessage(text) {
-            chatMessages.push({ sender: 'ai', text });
-            updateChat();
-        }
+        // Обработка Enter в поле ввода
+        document.getElementById("user-message").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                document.getElementById("send-button").click();
+            }
+        });
 
-        // Добавление сообщения пользователя в чат
-        function addUserMessage(text) {
-            chatMessages.push({ sender: 'user', text });
-            updateChat();
-        }
-
-        // Обновление отображения чата
-        function updateChat() {
-            const chatDiv = document.getElementById("chat-messages");
-            chatDiv.innerHTML = '';
-            
-            chatMessages.forEach(msg => {
-                const messageDiv = document.createElement("div");
-                messageDiv.className = `message ${msg.sender}-message`;
-                messageDiv.textContent = msg.text;
-                chatDiv.appendChild(messageDiv);
-            });
-            
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-        }
-
-        // Отправляем данные в бота
-        function sendData() {
-            const finalData = {
-                ...userData,
-                chatHistory: chatMessages,
-                timestamp: new Date().toISOString()
-            };
-            
-            tg.sendData(JSON.stringify(finalData));
-            tg.close();
-        }
-
-        // Обработка текстового ввода
+        // Обработка текстового ввода в квизе
         document.getElementById("text-answer").addEventListener("keypress", (e) => {
             if (e.key === "Enter" && e.target.value.trim()) {
                 saveAnswer(e.target.value.trim());
             }
         });
 
-        // Обработка отправки сообщения в чате
-        document.getElementById("send-button").addEventListener("click", async () => {
-            const input = document.getElementById("user-message");
-            const message = input.value.trim();
-            
-            if (message) {
-                addUserMessage(message);
-                input.value = '';
-                
-                // Показываем индикатор набора сообщения
-                const typingIndicator = document.createElement("div");
-                typingIndicator.className = "message ai-message";
-                typingIndicator.innerHTML = '<span class="loading"></span>';
-                document.getElementById("chat-messages").appendChild(typingIndicator);
-                
-                // Генерируем ответ
-                const prompt = `Ты - ${userData.style}. Пользователь ${userData.name} написал: "${message}". Ответь в своем стиле.`;
-                const response = await generateWithGemini(prompt);
-                
-                // Убираем индикатор и добавляем ответ
-                document.getElementById("chat-messages").removeChild(typingIndicator);
-                addAiMessage(response);
-            }
-        });
-
-        // Обработка Enter в поле ввода чата
-        document.getElementById("user-message").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                document.getElementById("send-button").click();
+        // Отправка данных при закрытии
+        tg.onEvent('viewportChanged', () => {
+            if (tg.isClosingConfirmationEnabled) {
+                const finalData = {
+                    userData,
+                    chatHistory,
+                    timestamp: new Date().toISOString()
+                };
+                tg.sendData(JSON.stringify(finalData));
             }
         });
 
