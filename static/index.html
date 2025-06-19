@@ -31,18 +31,37 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 1rem;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #006699;
         }
         input {
             padding: 12px;
             width: 100%;
             box-sizing: border-box;
             margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
         }
         .ai-response {
             background: #e3f2fd;
             padding: 15px;
             border-radius: 8px;
             margin: 15px 0;
+            white-space: pre-line;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.3);
+            border-radius: 50%;
+            border-top-color: #0088cc;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -113,7 +132,10 @@
                 step.options.forEach(option => {
                     const button = document.createElement("button");
                     button.textContent = option;
-                    button.onclick = () => saveAnswer(option);
+                    button.onclick = () => {
+                        button.innerHTML = `<span class="loading"></span> ${option}`;
+                        setTimeout(() => saveAnswer(option), 300);
+                    };
                     answersDiv.appendChild(button);
                 });
             }
@@ -143,9 +165,14 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(userData)
                 });
-                console.log('Данные сохранены:', await response.json());
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка сервера');
+                }
+                return await response.json();
             } catch (error) {
-                console.error('Ошибка:', error);
+                console.error('Ошибка сохранения:', error);
+                return { success: false, error: error.message };
             }
         }
 
@@ -159,38 +186,63 @@
                 
                 Напиши персональное мотивирующее сообщение в выбранном стиле.
                 Для стиля "АБСОЛЮТНЫЙ ДОМИНАТОР" используй жесткий тон без мата.
+                Сообщение должно быть на русском, не длиннее 3 предложений.
             `;
             
             const apiKey = "AIzaSyBc0H7Mf_6KQYjtWirH2h0oaPrTuKOILJ8";
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
             
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: prompt }]
-                    }]
-                })
-            });
-            
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+                
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error('Ошибка Gemini:', error);
+                return `Привет, ${userData.name}! Готов начать тренировки в стиле ${userData.style}.`;
+            }
         }
 
         // Завершение квиза
         async function finishQuiz() {
-            await saveUserData();
-            const aiResponse = await generateWithGemini();
-            
             document.getElementById("quiz").innerHTML = `
-                <h1>${userData.name}, твой план готов!</h1>
-                <div class="ai-response">
-                    <p>${aiResponse}</p>
+                <h1>Формируем ваш план...</h1>
+                <div style="text-align: center;">
+                    <span class="loading" style="width: 40px; height: 40px;"></span>
                 </div>
-                <p>Стиль: <strong>${userData.style}</strong></p>
-                <button onclick="sendData()" style="background: #4CAF50;">Начать тренировки!</button>
             `;
+            
+            try {
+                await saveUserData();
+                const aiResponse = await generateWithGemini();
+                
+                document.getElementById("quiz").innerHTML = `
+                    <h1>${userData.name}, твой план готов!</h1>
+                    <div class="ai-response">
+                        ${aiResponse}
+                    </div>
+                    <p>Стиль: <strong>${userData.style}</strong></p>
+                    <button onclick="sendData()" style="background: #4CAF50;">Начать тренировки!</button>
+                `;
+            } catch (error) {
+                document.getElementById("quiz").innerHTML = `
+                    <h1>${userData.name}, твой план готов!</h1>
+                    <div class="ai-response">
+                        Привет! Начинаем тренировки в стиле ${userData.style}.
+                        Твоя цель: бегать ${userData.frequency} в неделю.
+                    </div>
+                    <button onclick="sendData()" style="background: #4CAF50;">Начать!</button>
+                `;
+                console.error("Ошибка завершения квиза:", error);
+            }
         }
 
         // Отправляем данные в бота
