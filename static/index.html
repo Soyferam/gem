@@ -168,7 +168,7 @@
 
     async function generateWithAI(prompt) {
       try {
-        const response = await fetch("/api/proxy", {
+        onst response = await fetch("http://localhost:4000/api/proxy", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
