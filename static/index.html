@@ -63,6 +63,12 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        #status-message {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -230,7 +236,9 @@
                         ${aiResponse}
                     </div>
                     <p>Стиль: <strong>${userData.style}</strong></p>
+                    <p>Частота пробежек: <strong>${userData.frequency}</strong></p>
                     <button onclick="sendData()" style="background: #4CAF50;">Начать тренировки!</button>
+                    <p id="status-message"></p>
                 `;
             } catch (error) {
                 document.getElementById("quiz").innerHTML = `
@@ -240,15 +248,46 @@
                         Твоя цель: бегать ${userData.frequency} в неделю.
                     </div>
                     <button onclick="sendData()" style="background: #4CAF50;">Начать!</button>
+                    <p id="status-message"></p>
                 `;
                 console.error("Ошибка завершения квиза:", error);
             }
         }
 
-        // Отправляем данные в бота
+        // Отправляем данные в бота (ИСПРАВЛЕННАЯ ВЕРСИЯ)
         function sendData() {
-            tg.sendData(JSON.stringify(userData));
-            tg.close();
+            const statusElement = document.getElementById("status-message");
+            const button = document.querySelector('button[onclick="sendData()"]');
+            
+            // Блокируем кнопку и показываем статус
+            button.disabled = true;
+            button.innerHTML = '<span class="loading"></span> Отправка...';
+            statusElement.textContent = "Отправляем данные...";
+            
+            // Формируем финальные данные
+            const finalData = {
+                name: userData.name,
+                style: userData.style,
+                frequency: userData.frequency,
+                motivation: userData.motivation,
+                userId: tg.initDataUnsafe.user?.id || 'anonymous',
+                timestamp: new Date().toISOString(),
+                status: "quiz_completed"
+            };
+
+            // Отправляем данные в Telegram
+            tg.sendData(JSON.stringify(finalData));
+            
+            // Обновляем статус
+            statusElement.textContent = "Данные успешно отправлены!";
+            button.textContent = "✓ Готово";
+            
+            // Показываем подтверждение и закрываем через 2 секунды
+            setTimeout(() => {
+                tg.showAlert("Отлично! Скоро начнем тренировки!", () => {
+                    tg.close();
+                });
+            }, 2000);
         }
 
         // Обработка текстового ввода
