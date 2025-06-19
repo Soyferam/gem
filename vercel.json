@@ -1,8 +1,6 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/", "destination": "/static/index.html" },
-    { "source": "/api/proxy", "destination": "/api/proxy.js" },
-    { "source": "/api/save-user", "destination": "/api/save-user.js" }
+    { "source": "/", "destination": "/static/index.html" }
   ]
 }
