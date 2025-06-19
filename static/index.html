@@ -38,6 +38,12 @@
             box-sizing: border-box;
             margin-bottom: 10px;
         }
+        .ai-response {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
     </style>
 </head>
 <body>
@@ -51,7 +57,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand(); // На весь экран
 
-        // Данные квиза из ТЗ
+        // Данные квиза
         const quiz = [
             { 
                 question: "Как тебя зовут?", 
@@ -98,14 +104,11 @@
             const answersDiv = document.getElementById("answers");
             answersDiv.innerHTML = "";
 
-            // Текстовый вопрос
             if (step.type === "text") {
                 document.getElementById("text-answer").style.display = "block";
                 document.getElementById("text-answer").value = "";
                 document.getElementById("text-answer").focus();
-            } 
-            // Вопрос с кнопками
-            else {
+            } else {
                 document.getElementById("text-answer").style.display = "none";
                 step.options.forEach(option => {
                     const button = document.createElement("button");
@@ -122,7 +125,6 @@
             userData[step.key] = answer;
             currentStep++;
 
-            // Показываем следующий вопрос или завершаем квиз
             if (currentStep < quiz.length) {
                 showQuestion();
             } else {
@@ -130,13 +132,64 @@
             }
         }
 
+        // Сохранение данных пользователя
+        async function saveUserData() {
+            userData.userId = tg.initDataUnsafe.user?.id || 'anonymous';
+            userData.date = new Date().toISOString();
+            
+            try {
+                const response = await fetch('/api/save-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                console.log('Данные сохранены:', await response.json());
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        // Генерация ответа через Gemini
+        async function generateWithGemini() {
+            const prompt = `
+                Пользователь ${userData.name} выбрал:
+                - Стиль коуча: ${userData.style}
+                - Частота пробежек: ${userData.frequency}
+                - Мотивация: ${userData.motivation}
+                
+                Напиши персональное мотивирующее сообщение в выбранном стиле.
+                Для стиля "АБСОЛЮТНЫЙ ДОМИНАТОР" используй жесткий тон без мата.
+            `;
+            
+            const apiKey = "AIzaSyBc0H7Mf_6KQYjtWirH2h0oaPrTuKOILJ8";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }]
+                })
+            });
+            
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text;
+        }
+
         // Завершение квиза
-        function finishQuiz() {
+        async function finishQuiz() {
+            await saveUserData();
+            const aiResponse = await generateWithGemini();
+            
             document.getElementById("quiz").innerHTML = `
-                <h1>Спасибо, ${userData.name}!</h1>
-                <p>Твой стиль коуча: <strong>${userData.style}</strong></p>
-                <p>Частота пробежек: <strong>${userData.frequency}</strong></p>
-                <button onclick="sendData()" style="background: #4CAF50;">Готово!</button>
+                <h1>${userData.name}, твой план готов!</h1>
+                <div class="ai-response">
+                    <p>${aiResponse}</p>
+                </div>
+                <p>Стиль: <strong>${userData.style}</strong></p>
+                <button onclick="sendData()" style="background: #4CAF50;">Начать тренировки!</button>
             `;
         }
 
@@ -146,7 +199,7 @@
             tg.close();
         }
 
-        // Обработка текстового ввода (для имени)
+        // Обработка текстового ввода
         document.getElementById("text-answer").addEventListener("keypress", (e) => {
             if (e.key === "Enter" && e.target.value.trim()) {
                 saveAnswer(e.target.value.trim());
