@@ -3,50 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест Mini App</title>
+    <title>Healthie Quiz</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
             padding: 20px;
-            background: #f0f8ff;
+            max-width: 600px;
+            margin: 0 auto;
+            background: #f5f5f5;
         }
-        h1 {
+        #question {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
             color: #0088cc;
         }
+        #answers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
         button {
-            padding: 10px 20px;
+            padding: 12px;
             background: #0088cc;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 1rem;
+        }
+        input {
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>🚀 Telegram Mini App работает!</h1>
-    <p>Это тестовая страница на Vercel.</p>
-    
-    <button onclick="showAlert()">Нажми меня</button>
-    
+    <div id="quiz">
+        <h1 id="question"></h1>
+        <input type="text" id="text-answer" placeholder="Введите ответ..." style="display: none;">
+        <div id="answers"></div>
+    </div>
+
     <script>
-        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран
-        
-        function showAlert() {
-            tg.showAlert("Кнопка сработала! Vercel + Telegram = ❤️");
+        tg.expand(); // На весь экран
+
+        // Данные квиза из ТЗ
+        const quiz = [
+            { 
+                question: "Как тебя зовут?", 
+                type: "text", 
+                key: "name" 
+            },
+            { 
+                question: "Сколько раз в неделю ты хочешь бегать?", 
+                type: "choice", 
+                options: ["1 раз", "2 раза", "3 раза", "Больше 3 раз"], 
+                key: "frequency" 
+            },
+            { 
+                question: "Что тебя мотивирует?", 
+                type: "choice", 
+                options: [
+                    "Почувствовать прилив энергии", 
+                    "Снять стресс", 
+                    "Улучшить физическую форму",
+                    "Другое (напишу)"
+                ], 
+                key: "motivation" 
+            },
+            { 
+                question: "Выбери стиль коуча:", 
+                type: "style", 
+                options: [
+                    "Железный Наставник", 
+                    "Энерджайзер-Зажигалка", 
+                    "Спокойный Мудрец",
+                    "АБСОЛЮТНЫЙ ДОМИНАТОР (будет жестко!)"
+                ], 
+                key: "style" 
+            }
+        ];
+
+        let currentStep = 0;
+        const userData = {};
+
+        // Показываем текущий вопрос
+        function showQuestion() {
+            const step = quiz[currentStep];
+            document.getElementById("question").textContent = step.question;
+            const answersDiv = document.getElementById("answers");
+            answersDiv.innerHTML = "";
+
+            // Текстовый вопрос
+            if (step.type === "text") {
+                document.getElementById("text-answer").style.display = "block";
+                document.getElementById("text-answer").value = "";
+                document.getElementById("text-answer").focus();
+            } 
+            // Вопрос с кнопками
+            else {
+                document.getElementById("text-answer").style.display = "none";
+                step.options.forEach(option => {
+                    const button = document.createElement("button");
+                    button.textContent = option;
+                    button.onclick = () => saveAnswer(option);
+                    answersDiv.appendChild(button);
+                });
+            }
         }
-        
-        // Отправка данных в бота (пример)
-        tg.MainButton
-            .setText("Отправить данные")
-            .onClick(() => {
-                tg.sendData(JSON.stringify({ status: "success" }));
-            })
-            .show();
+
+        // Сохраняем ответ
+        function saveAnswer(answer) {
+            const step = quiz[currentStep];
+            userData[step.key] = answer;
+            currentStep++;
+
+            // Показываем следующий вопрос или завершаем квиз
+            if (currentStep < quiz.length) {
+                showQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        // Завершение квиза
+        function finishQuiz() {
+            document.getElementById("quiz").innerHTML = `
+                <h1>Спасибо, ${userData.name}!</h1>
+                <p>Твой стиль коуча: <strong>${userData.style}</strong></p>
+                <p>Частота пробежек: <strong>${userData.frequency}</strong></p>
+                <button onclick="sendData()" style="background: #4CAF50;">Готово!</button>
+            `;
+        }
+
+        // Отправляем данные в бота
+        function sendData() {
+            tg.sendData(JSON.stringify(userData));
+            tg.close();
+        }
+
+        // Обработка текстового ввода (для имени)
+        document.getElementById("text-answer").addEventListener("keypress", (e) => {
+            if (e.key === "Enter" && e.target.value.trim()) {
+                saveAnswer(e.target.value.trim());
+            }
+        });
+
+        // Старт квиза
+        showQuestion();
     </script>
 </body>
 </html>
