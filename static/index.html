@@ -1,272 +1,347 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Healthie AI</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 600px;
-      margin: 0 auto;
-      background: #f5f5f5;
-    }
-    h1 {
-      color: #0088cc;
-    }
-    #question {
-      font-size: 1.3rem;
-      margin-bottom: 20px;
-    }
-    #answers {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    button {
-      padding: 12px;
-      background: #0088cc;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background: #006699;
-    }
-    input {
-      padding: 12px;
-      width: 100%;
-      box-sizing: border-box;
-      margin-bottom: 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-    }
-    .loading {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(0, 0, 0, 0.3);
-      border-radius: 50%;
-      border-top-color: #0088cc;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-    #chat-container {
-      display: none;
-      margin-top: 20px;
-    }
-    .message {
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 8px;
-      max-width: 80%;
-    }
-    .ai-message {
-      background: #e3f2fd;
-      align-self: flex-start;
-    }
-    .user-message {
-      background: #dcf8c6;
-      align-self: flex-end;
-      margin-left: auto;
-    }
-    #chat-messages {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 300px;
-      overflow-y: auto;
-      margin-bottom: 15px;
-      padding: 10px;
-      background: white;
-      border-radius: 8px;
-    }
-    #user-input {
-      display: flex;
-      gap: 10px;
-    }
-    #user-message {
-      flex-grow: 1;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
-    #send-button {
-      min-width: 100px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthie Quiz</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        #question {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #0088cc;
+        }
+        #answers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 12px;
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #006699;
+        }
+        input {
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .ai-response {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            white-space: pre-line;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.3);
+            border-radius: 50%;
+            border-top-color: #0088cc;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        #chat-container {
+            display: none;
+            margin-top: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .ai-message {
+            background: #e3f2fd;
+            align-self: flex-start;
+        }
+        .user-message {
+            background: #dcf8c6;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+        #user-input {
+            display: flex;
+            gap: 10px;
+        }
+        #user-message {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        #send-button {
+            min-width: 100px;
+        }
+    </style>
 </head>
 <body>
-  <div id="quiz">
-    <h1 id="question"></h1>
-    <input type="text" id="text-answer" placeholder="Введите ответ..." style="display: none;" />
-    <div id="answers"></div>
-  </div>
-
-  <div id="chat-container">
-    <div id="chat-messages"></div>
-    <div id="user-input">
-      <input type="text" id="user-message" placeholder="Напишите сообщение..." />
-      <button id="send-button">Отправить</button>
+    <div id="quiz">
+        <h1 id="question"></h1>
+        <input type="text" id="text-answer" placeholder="Введите ответ..." style="display: none;">
+        <div id="answers"></div>
     </div>
-  </div>
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    const quiz = [
-      { question: "!Давай знакомиться! Как тебя зовут?", type: "text", key: "name" },
-      { question: "Сколько раз в неделю ты хочешь бегать?", type: "choice", options: ["1 раз", "2 раза", "3 раза", "Больше 3 раз"], key: "frequency" },
-      { question: "Что тебя мотивирует?", type: "choice", options: ["Почувствовать прилив энергии", "Снять стресс", "Улучшить физическую форму", "Другое (напишу)"], key: "motivation" },
-      { question: "Выбери стиль коуча:", type: "choice", options: ["Железный Наставник", "Энерджайзер-Зажигалка", "Спокойный Мудрец", "АБСОЛЮТНЫЙ ДОМИНАТОР (будет жестко!)"], key: "style" }
-    ];
-
-    let currentStep = 0;
-    const userData = {};
-    const chatHistory = [];
-
-    function showQuestion() {
-      const step = quiz[currentStep];
-      document.getElementById("question").textContent = step.question;
-      const answersDiv = document.getElementById("answers");
-      answersDiv.innerHTML = "";
-
-      if (step.type === "text") {
-        document.getElementById("text-answer").style.display = "block";
-        document.getElementById("text-answer").value = "";
-        document.getElementById("text-answer").focus();
-      } else {
-        document.getElementById("text-answer").style.display = "none";
-        step.options.forEach(option => {
-          const button = document.createElement("button");
-          button.textContent = option;
-          button.onclick = () => {
-            button.innerHTML = `<span class="loading"></span> ${option}`;
-            setTimeout(() => saveAnswer(option), 300);
-          };
-          answersDiv.appendChild(button);
-        });
-      }
-    }
-
-    function saveAnswer(answer) {
-      const step = quiz[currentStep];
-      userData[step.key] = answer;
-      currentStep++;
-
-      if (currentStep < quiz.length) {
-        showQuestion();
-      } else {
-        finishQuiz();
-      }
-    }
-
-    async function generateWithAI(prompt) {
-      const apiKey = "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";
-      const fullPrompt = `
-Ты — ${userData.style}, персональный AI-коуч по бегу.
-Пользователь: ${userData.name}, цель: ${userData.frequency} пробежек в неделю.
-Мотивация: ${userData.motivation}.
-Диалог: "${prompt}"
-
-Ответь в выбранном стиле, коротко (1-2 предложения), дружелюбно и по делу.
-`;
-
-      try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: "mistralai/mistral-7b-instruct",
-            messages: [{ role: "user", content: fullPrompt }]
-          })
-        });
-
-        const data = await response.json();
-        return data.choices?.[0]?.message?.content?.trim() || "Коуч пока думает, попробуй снова.";
-      } catch (error) {
-        console.error("Ошибка AI:", error);
-        return "Извините, не могу ответить сейчас.";
-      }
-    }
-
-    function addMessage(sender, text) {
-      const chatDiv = document.getElementById("chat-messages");
-      const messageDiv = document.createElement("div");
-      messageDiv.className = `message ${sender}-message`;
-      messageDiv.textContent = text;
-      chatDiv.appendChild(messageDiv);
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-      chatHistory.push({ sender, text });
-    }
-
-    async function finishQuiz() {
-      document.getElementById("quiz").innerHTML = `
-        <h1>Формируем ваш план...</h1>
-        <div style="text-align: center;">
-          <span class="loading" style="width: 40px; height: 40px;"></span>
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <div id="user-input">
+            <input type="text" id="user-message" placeholder="Напишите сообщение...">
+            <button id="send-button">Отправить</button>
         </div>
-      `;
+    </div>
 
-      try {
-        const welcomeMessage = await generateWithAI("Напиши приветственное сообщение.");
-        document.getElementById("quiz").style.display = "none";
-        document.getElementById("chat-container").style.display = "block";
-        addMessage("ai", welcomeMessage);
-      } catch (e) {
-        addMessage("ai", `Привет, ${userData.name}! Готов тренироваться в стиле ${userData.style}!`);
-        document.getElementById("quiz").style.display = "none";
-        document.getElementById("chat-container").style.display = "block";
-      }
-    }
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // На весь экран
 
-    document.getElementById("send-button").addEventListener("click", async () => {
-      const input = document.getElementById("user-message");
-      const message = input.value.trim();
-      if (!message) return;
+        // Данные квиза
+        const quiz = [
+            { 
+                question: "!Давай знакомиться! Как тебя зовут?", 
+                type: "text", 
+                key: "name" 
+            },
+            { 
+                question: "Сколько раз в неделю ты хочешь бегать?", 
+                type: "choice", 
+                options: ["1 раз", "2 раза", "3 раза", "Больше 3 раз"], 
+                key: "frequency" 
+            },
+            { 
+                question: "Что тебя мотивирует?", 
+                type: "choice", 
+                options: [
+                    "Почувствовать прилив энергии", 
+                    "Снять стресс", 
+                    "Улучшить физическую форму",
+                    "Другое (напишу)"
+                ], 
+                key: "motivation" 
+            },
+            { 
+                question: "Выбери стиль коуча:", 
+                type: "style", 
+                options: [
+                    "Железный Наставник", 
+                    "Энерджайзер-Зажигалка", 
+                    "Спокойный Мудрец",
+                    "АБСОЛЮТНЫЙ ДОМИНАТОР (будет жестко!)"
+                ], 
+                key: "style" 
+            }
+        ];
 
-      addMessage("user", message);
-      input.value = "";
+        let currentStep = 0;
+        const userData = {};
+        const chatHistory = [];
 
-      const loading = document.createElement("div");
-      loading.className = "message ai-message";
-      loading.innerHTML = '<span class="loading"></span> Коуч печатает...';
-      document.getElementById("chat-messages").appendChild(loading);
+        // Показываем текущий вопрос
+        function showQuestion() {
+            const step = quiz[currentStep];
+            document.getElementById("question").textContent = step.question;
+            const answersDiv = document.getElementById("answers");
+            answersDiv.innerHTML = "";
 
-      try {
-        const reply = await generateWithAI(`Пользователь написал: "${message}". Ответь в своем стиле.`);
-        document.getElementById("chat-messages").removeChild(loading);
-        addMessage("ai", reply);
-      } catch (e) {
-        document.getElementById("chat-messages").removeChild(loading);
-        addMessage("ai", "Произошла ошибка. Попробуй позже.");
-      }
-    });
+            if (step.type === "text") {
+                document.getElementById("text-answer").style.display = "block";
+                document.getElementById("text-answer").value = "";
+                document.getElementById("text-answer").focus();
+            } else {
+                document.getElementById("text-answer").style.display = "none";
+                step.options.forEach(option => {
+                    const button = document.createElement("button");
+                    button.textContent = option;
+                    button.onclick = () => {
+                        button.innerHTML = `<span class="loading"></span> ${option}`;
+                        setTimeout(() => saveAnswer(option), 300);
+                    };
+                    answersDiv.appendChild(button);
+                });
+            }
+        }
 
-    document.getElementById("user-message").addEventListener("keypress", e => {
-      if (e.key === "Enter") document.getElementById("send-button").click();
-    });
+        // Сохраняем ответ
+        function saveAnswer(answer) {
+            const step = quiz[currentStep];
+            userData[step.key] = answer;
+            currentStep++;
 
-    document.getElementById("text-answer").addEventListener("keypress", e => {
-      if (e.key === "Enter" && e.target.value.trim()) {
-        saveAnswer(e.target.value.trim());
-      }
-    });
+            if (currentStep < quiz.length) {
+                showQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
 
-    showQuestion();
-  </script>
+        // Генерация ответа через Ollama (Llama 3)
+        async function generateWithAI(prompt) {
+            try {
+                const response = await fetch("http://localhost:11434/api/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model: "llama3",
+                        prompt: `
+                            Ты — ${userData.style}, персональный тренер по бегу. 
+                            Пользователь: ${userData.name}, цель: ${userData.frequency} пробежек в неделю.
+                            Мотивация: ${userData.motivation}.
+                            Ответь кратко (1-2 предложения) в своём стиле на вопрос: ${prompt}
+                        `,
+                        stream: false
+                    })
+                });
+
+                const data = await response.json();
+                return data.response || "Не получилось сгенерировать ответ...";
+
+            } catch (error) {
+                console.error("Ошибка запроса к Ollama:", error);
+                const fallbackResponses = {
+                    "Железный Наставник": [
+                        `${userData.name}, хватит болтать! ${userData.frequency} пробежек - это не обсуждается!`,
+                        "Разговоры не помогут. Выходи на пробежку!",
+                        "Я вижу только отговорки. Бегом на тренировку!"
+                    ],
+                    "Энерджайзер-Зажигалка": [
+                        `Ура, ${userData.name}! 🎉 Давай сделаем эти ${userData.frequency} пробежки незабываемыми!`,
+                        "Ты потрясающий! Бежим к цели вместе! 💪",
+                        "Я верю в тебя! Давай начнем прямо сейчас!"
+                    ],
+                    "Спокойный Мудрец": [
+                        `${userData.name}, помни - дорогу осилит идущий. Начнем с ${userData.frequency} пробежек.`,
+                        "Бег - это медитация в движении. Наслаждайся процессом.",
+                        "Все приходит в свое время. Главное - начать."
+                    ],
+                    "АБСОЛЮТНЫЙ ДОМИНАТОР": [
+                        `${userData.name.toUpperCase()}, ТЫ СЛАБАК? ${userData.frequency.toUpperCase()} ПРОБЕЖЕК ИЛИ ТЫ НИЧТО!`,
+                        "ХВАТИТ НЫТЬ! ВЫХОДИ И БЕГИ!",
+                        "ТЫ ДАЖЕ НЕ ПРЕДСТАВЛЯЕШЬ, НА ЧТО СПОСОБЕН! БЕГОМ!"
+                    ]
+                };
+                const responses = fallbackResponses[userData.style] || ["Давай обсудим твои тренировки."];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+        }
+
+        // Добавление сообщения в чат
+        function addMessage(sender, text) {
+            const chatDiv = document.getElementById("chat-messages");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = text;
+            chatDiv.appendChild(messageDiv);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+            chatHistory.push({ sender, text });
+        }
+
+        // Завершение квиза
+        async function finishQuiz() {
+            document.getElementById("quiz").innerHTML = `
+                <h1>Формируем ваш план...</h1>
+                <div style="text-align: center;">
+                    <span class="loading" style="width: 40px; height: 40px;"></span>
+                </div>
+            `;
+            
+            try {
+                const welcomeMessage = await generateWithAI("Напиши приветственное сообщение");
+                document.getElementById("quiz").style.display = "none";
+                document.getElementById("chat-container").style.display = "block";
+                addMessage("ai", welcomeMessage);
+            } catch (error) {
+                const fallbackMessage = `Привет, ${userData.name}! Готов начать тренировки в стиле ${userData.style}.`;
+                document.getElementById("quiz").style.display = "none";
+                document.getElementById("chat-container").style.display = "block";
+                addMessage("ai", fallbackMessage);
+            }
+        }
+
+        // Обработка отправки сообщения
+        document.getElementById("send-button").addEventListener("click", async () => {
+            const input = document.getElementById("user-message");
+            const message = input.value.trim();
+            
+            if (message) {
+                addMessage("user", message);
+                input.value = '';
+                
+                const typingIndicator = document.createElement("div");
+                typingIndicator.className = "message ai-message";
+                typingIndicator.innerHTML = '<span class="loading"></span> Коуч печатает...';
+                document.getElementById("chat-messages").appendChild(typingIndicator);
+                
+                try {
+                    const response = await generateWithAI(`Пользователь написал: "${message}". Ответь в своем стиле.`);
+                    document.getElementById("chat-messages").removeChild(typingIndicator);
+                    addMessage("ai", response);
+                } catch (error) {
+                    document.getElementById("chat-messages").removeChild(typingIndicator);
+                    addMessage("ai", "Извините, не могу ответить сейчас. Попробуйте позже.");
+                }
+            }
+        });
+
+        // Обработка Enter в поле ввода
+        document.getElementById("user-message").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                document.getElementById("send-button").click();
+            }
+        });
+
+        // Обработка текстового ввода в квизе
+        document.getElementById("text-answer").addEventListener("keypress", (e) => {
+            if (e.key === "Enter" && e.target.value.trim()) {
+                saveAnswer(e.target.value.trim());
+            }
+        });
+
+        // Отправка данных при закрытии
+        tg.onEvent('viewportChanged', () => {
+            if (tg.isClosingConfirmationEnabled) {
+                const finalData = {
+                    userData,
+                    chatHistory,
+                    timestamp: new Date().toISOString()
+                };
+                tg.sendData(JSON.stringify(finalData));
+            }
+        });
+
+        // Старт квиза
+        showQuestion();
+    </script>
 </body>
 </html>
