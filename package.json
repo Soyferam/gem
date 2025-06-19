@@ -1,6 +1,9 @@
 {
-  "name": "healthie-app",
-  "version": "1.0.0",
+  "name": "gem",
   "type": "module",
-  "dependencies": {}
+  "dependencies": {},
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build"
+  }
 }

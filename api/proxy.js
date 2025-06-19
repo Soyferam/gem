@@ -1,5 +1,7 @@
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Метод не поддерживается' });
+  }
 
   const { prompt, stream = false } = req.body;
 
@@ -11,13 +13,11 @@ export default async function handler(req, res) {
         model: "llama3",
         prompt,
         stream
-      })
+      }),
     });
 
     const data = await ollamaRes.json();
     res.status(200).json(data);
-  } catch (err) {
-    console.error("Ошибка обращения к Ollama:", err);
-    res.status(500).json({ error: "Ошибка сервера" });
-  }
-}
+  } catch (error) {
+    console.error("Ошибка обращения к Ollama:", error);
+    res.status(500).json({
