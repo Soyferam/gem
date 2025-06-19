@@ -239,14 +239,12 @@
                 });
 
                 const data = await response.json();
-                console.log("Полный ответ API:", data); // Для отладки
+                console.log("Полный ответ API:", data);
 
-                // Улучшенная проверка структуры ответа
                 if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
                     return data.candidates[0].content.parts[0].text;
                 }
                 
-                // Альтернативные пути доступа к ответу
                 if (data?.predictions?.[0]?.content) {
                     return data.predictions[0].content;
                 }
@@ -256,7 +254,6 @@
             } catch (error) {
                 console.error("Ошибка при запросе к Gemini:", error);
                 
-                // Генерация fallback-ответа на основе стиля
                 const fallbackResponses = {
                     "Железный Наставник": [
                         `${userData.name}, хватит болтать! ${userData.frequency} пробежек - это не обсуждается!`,
@@ -285,7 +282,92 @@
             }
         }
 
-        // Остальной код остается без изменений ...
+        // Добавление сообщения в чат
+        function addMessage(sender, text) {
+            const chatDiv = document.getElementById("chat-messages");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = text;
+            chatDiv.appendChild(messageDiv);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+            chatHistory.push({ sender, text });
+        }
+
+        // Завершение квиза
+        async function finishQuiz() {
+            document.getElementById("quiz").innerHTML = `
+                <h1>Формируем ваш план...</h1>
+                <div style="text-align: center;">
+                    <span class="loading" style="width: 40px; height: 40px;"></span>
+                </div>
+            `;
+            
+            try {
+                const welcomeMessage = await generateWithGemini("Напиши приветственное сообщение");
+                document.getElementById("quiz").style.display = "none";
+                document.getElementById("chat-container").style.display = "block";
+                addMessage("ai", welcomeMessage);
+            } catch (error) {
+                const fallbackMessage = `Привет, ${userData.name}! Готов начать тренировки в стиле ${userData.style}.`;
+                document.getElementById("quiz").style.display = "none";
+                document.getElementById("chat-container").style.display = "block";
+                addMessage("ai", fallbackMessage);
+            }
+        }
+
+        // Обработка отправки сообщения
+        document.getElementById("send-button").addEventListener("click", async () => {
+            const input = document.getElementById("user-message");
+            const message = input.value.trim();
+            
+            if (message) {
+                addMessage("user", message);
+                input.value = '';
+                
+                const typingIndicator = document.createElement("div");
+                typingIndicator.className = "message ai-message";
+                typingIndicator.innerHTML = '<span class="loading"></span> Коуч печатает...';
+                document.getElementById("chat-messages").appendChild(typingIndicator);
+                
+                try {
+                    const response = await generateWithGemini(`Пользователь написал: "${message}". Ответь в своем стиле.`);
+                    document.getElementById("chat-messages").removeChild(typingIndicator);
+                    addMessage("ai", response);
+                } catch (error) {
+                    document.getElementById("chat-messages").removeChild(typingIndicator);
+                    addMessage("ai", "Извините, не могу ответить сейчас. Попробуйте позже.");
+                }
+            }
+        });
+
+        // Обработка Enter в поле ввода
+        document.getElementById("user-message").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                document.getElementById("send-button").click();
+            }
+        });
+
+        // Обработка текстового ввода в квизе
+        document.getElementById("text-answer").addEventListener("keypress", (e) => {
+            if (e.key === "Enter" && e.target.value.trim()) {
+                saveAnswer(e.target.value.trim());
+            }
+        });
+
+        // Отправка данных при закрытии
+        tg.onEvent('viewportChanged', () => {
+            if (tg.isClosingConfirmationEnabled) {
+                const finalData = {
+                    userData,
+                    chatHistory,
+                    timestamp: new Date().toISOString()
+                };
+                tg.sendData(JSON.stringify(finalData));
+            }
+        });
+
+        // Старт квиза
+        showQuestion();
     </script>
 </body>
 </html>
