@@ -1,35 +1,29 @@
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = 3001; // Теперь фронт и бек на одном порту
+const PORT = 3001; // Единый порт для всего
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Настройка CORS
+app.use(cors({
+  origin: 'http://localhost:3001',
+  methods: ['POST', 'GET', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+}));
 
-// Favicon fix
-app.get('/favicon.ico', (req, res) => res.status(204).end());
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// API Route
 app.post('/api/gemini', async (req, res) => {
   try {
-    const { prompt } = req.body;
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const { prompt, style } = req.body;
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(`Ты — ${style}. Ответь: ${prompt}`);
     res.json({ response: (await result.response).text() });
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// Статика
-app.use(express.static(path.join(__dirname, 'static')));
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
