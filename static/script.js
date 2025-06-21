@@ -1,3 +1,5 @@
+const COLD_FLARE_URL = "https://cold-credit-3c5d.arsivals.workers.dev/";
+
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('chat-form');
   const input = document.getElementById('user-input');
@@ -20,17 +22,32 @@ document.addEventListener('DOMContentLoaded', () => {
     input.value = '';
 
     try {
-      const response = await fetch('/api/gemini', {
+      // Показываем индикатор загрузки
+      const loadingMsg = addMessage('status', 'ИИ думает...');
+      
+      const response = await fetch(COLD_FLARE_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: message })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ 
+          prompt: message,
+          style: "Энерджайзер" // Можно добавить выбор стиля
+        })
       });
 
-      if (!response.ok) throw new Error('Network error');
-      
+      // Убираем индикатор загрузки
+      messages.removeChild(loadingMsg);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       addMessage('ai', data.response);
     } catch (error) {
+      console.error('Error:', error);
       addMessage('error', `Ошибка: ${error.message}`);
     }
   });
