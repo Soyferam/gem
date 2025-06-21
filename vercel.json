@@ -14,7 +14,7 @@
     {
       "src": "/api/gemini",
       "dest": "/api/gemini",
-      "methods": ["POST", "OPTIONS"]
+      "methods": ["GET", "POST", "OPTIONS"]
     },
     {
       "src": "/(.*)",

@@ -1,7 +1,7 @@
 // Конфигурация API (ЗАМЕНИТЕ на ваш реальный домен Vercel)
 const API_CONFIG = {
   local: 'http://localhost:3000/api/gemini',
-  production: 'https://gem-orpin-beta.vercel.app/' // Убедитесь что это ваш домен!
+  production: 'https://gem-orpin-beta.vercel.app/api/gemini' // Убедитесь что это ваш домен!
 };
 
 // Получаем текущий URL API с проверкой
