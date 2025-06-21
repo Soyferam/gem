@@ -3,39 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Беговой коуч</title>
-  <style>
-    #messages {
-      height: 400px;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      padding: 10px;
-      margin-bottom: 10px;
-    }
-    .user-message { background: #e3f2fd; margin: 5px 0; padding: 8px; }
-    .ai-message { background: #e8f5e9; margin: 5px 0; padding: 8px; }
-    .error-message { background: #ffebee; color: #c62828; }
-    .status-message { color: #666; font-style: italic; }
-    #chat-form { display: flex; gap: 10px; }
-    #user-input { flex-grow: 1; padding: 8px; }
-    button { padding: 8px 15px; background: #0088cc; color: white; border: none; }
-  </style>
+  <title>AI Чат</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Беговой коуч AI</h1>
-  
-  <div>
-    <label><input type="radio" name="style" value="Энерджайзер-Зажигалкаа" checked> Энерджайзер</label>
-    <label><input type="radio" name="style" value="Железный Наставник"> Наставник</label>
-    <label><input type="radio" name="style" value="Спокойный Мудрец"> Мудрец</label>
+  <div id="chat-container">
+    <h1>AI Чат</h1>
+    <div id="messages"></div>
+    <form id="chat-form">
+      <input type="text" id="user-input" placeholder="Ваше сообщение...">
+      <button type="submit">Отправить</button>
+    </form>
   </div>
-  
-  <div id="messages"></div>
-  <form id="chat-form">
-    <input type="text" id="user-input" placeholder="Ваш вопрос...">
-    <button type="submit">Отправить</button>
-  </form>
-
   <script src="script.js"></script>
 </body>
 </html>

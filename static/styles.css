@@ -1,10 +1,48 @@
-.status-message::after {
-  content: '...';
-  animation: dots 1.5s infinite;
+#chat-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-@keyframes dots {
-  0%, 20% { content: '.'; }
-  40% { content: '..'; }
-  60%, 100% { content: '...'; }
+#messages {
+  height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.user-message {
+  background: #e3f2fd;
+  margin: 5px 0;
+  padding: 8px;
+}
+
+.ai-message {
+  background: #e8f5e9;
+  margin: 5px 0;
+  padding: 8px;
+}
+
+.error-message {
+  background: #ffebee;
+  color: #c62828;
+}
+
+#chat-form {
+  display: flex;
+  gap: 10px;
+}
+
+#user-input {
+  flex-grow: 1;
+  padding: 8px;
+}
+
+button {
+  padding: 8px 15px;
+  background: #0088cc;
+  color: white;
+  border: none;
+  cursor: pointer;
 }

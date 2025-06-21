@@ -11,5 +11,18 @@
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
     "express": "^4.18.2"
-  }
+  },
+  "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Soyferam/gem.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Soyferam/gem/issues"
+  },
+  "homepage": "https://github.com/Soyferam/gem#readme",
+  "description": ""
 }
