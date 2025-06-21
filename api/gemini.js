@@ -1,20 +1,17 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "YOUR_API_KEY");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export default async (req, res) => {
-  // Настройки CORS
- // В начале обработчика запроса (до основной логики)
-res.setHeader('Access-Control-Allow-Origin', 'https://gem-orpin-beta.vercel.app');
-res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Настройка CORS
+  res.setHeader('Access-Control-Allow-Origin', 'https://gem-orpin-beta.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-// Для предварительных OPTIONS-запросов
-if (req.method === 'OPTIONS') {
-  return res.status(200).end();
-}
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-  // Основная логика
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Only POST allowed' });
   }
@@ -31,7 +28,10 @@ if (req.method === 'OPTIONS') {
       response: (await result.response).text() 
     });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate response',
+      details: error.message 
+    });
   }
 };
