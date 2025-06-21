@@ -4,14 +4,15 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "YOUR_API_KEY
 
 export default async (req, res) => {
   // Настройки CORS
-  res.setHeader('Access-Control-Allow-Origin', 'https://gem-orpin-beta.vercel.app');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+ // В начале обработчика запроса (до основной логики)
+res.setHeader('Access-Control-Allow-Origin', 'https://gem-orpin-beta.vercel.app');
+res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Обработка предварительного OPTIONS-запроса
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+// Для предварительных OPTIONS-запросов
+if (req.method === 'OPTIONS') {
+  return res.status(200).end();
+}
 
   // Основная логика
   if (req.method !== 'POST') {

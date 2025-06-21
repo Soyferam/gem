@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3001; // Изменили с 3000 на 3001
 
 // Middleware для обработки JSON
 app.use(express.json());

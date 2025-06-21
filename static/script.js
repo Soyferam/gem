@@ -1,73 +1,57 @@
-// Конфигурация API
+// Конфигурация API (ЗАМЕНИТЕ 'gem-orpin-beta' на ваш реальный проект Vercel)
 const API_CONFIG = {
   local: 'http://localhost:3000/api/gemini',
-  production: 'https://your-project-name.vercel.app/api/gemini'
+  production: 'https://gem-orpin-beta.vercel.app/api/gemini' // ← Вот здесь исправьте!
 };
 
-// Определяем текущий URL API
+// Получаем текущий URL API с проверкой
 const getApiUrl = () => {
-  if (window.location.hostname === 'localhost') {
-    console.log('Используется локальный API:', API_CONFIG.local);
-    return API_CONFIG.local;
-  }
-  console.log('Используется продакшен API:', API_CONFIG.production);
-  return API_CONFIG.production;
+  const isLocal = window.location.hostname === 'localhost' || 
+                 window.location.hostname === '127.0.0.1';
+  
+  return isLocal ? API_CONFIG.local : API_CONFIG.production;
 };
 
-// Функция для добавления сообщений в чат
+// Функция добавления сообщения (без изменений)
 const addMessage = (role, text) => {
   const messages = document.getElementById('messages');
   const msgElement = document.createElement('div');
-  
-  // Стили для разных типов сообщений
-  const messageClasses = {
-    user: 'user-message',
-    ai: 'ai-message',
-    error: 'error-message',
-    status: 'status-message'
-  };
-  
-  msgElement.className = `message ${messageClasses[role] || ''}`;
+  msgElement.className = `message ${role}-message`;
   msgElement.textContent = text;
   messages.appendChild(msgElement);
   messages.scrollTop = messages.scrollHeight;
-  
   return msgElement;
 };
 
-// Функция отправки сообщения на сервер
+// Улучшенная функция отправки сообщения
 const sendMessageToAI = async (message) => {
   try {
-    // Показываем индикатор загрузки
-    const loadingMsg = addMessage('status', 'Коуч печатает....');
+    const loadingMsg = addMessage('status', 'Коуч печатает...');
+    const apiUrl = getApiUrl();
     
-    // Получаем выбранный стиль
-    const selectedStyle = document.querySelector('input[name="style"]:checked')?.value || "Энерджайзер-Зажигалка";
+    console.log('Отправка запроса к:', apiUrl); // Логирование URL
     
-    // Отправляем запрос
-    const response = await fetch(getApiUrl(), {
+    const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
+      headers: { 
         'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       body: JSON.stringify({
         prompt: message,
-        style: selectedStyle
+        style: document.querySelector('input[name="style"]:checked')?.value || "Энерджайзер-Зажигалка"
       })
     });
 
-    // Убираем индикатор загрузки
     loadingMsg.remove();
-
-    // Обрабатываем ответ
+    
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `Ошибка сервера: ${response.status}`);
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
     }
-
+    
     const data = await response.json();
     addMessage('ai', data.response);
-    
   } catch (error) {
     console.error('Ошибка запроса:', error);
     addMessage('error', `Ошибка: ${error.message}`);
@@ -75,38 +59,17 @@ const sendMessageToAI = async (message) => {
 };
 
 // Инициализация чата
-const initChat = () => {
+document.addEventListener('DOMContentLoaded', () => {
   const chatForm = document.getElementById('chat-form');
   const userInput = document.getElementById('user-input');
 
-  if (!chatForm || !userInput) {
-    console.error('Не найдены необходимые элементы чата');
-    return;
-  }
-
-  chatForm.addEventListener('submit', (e) => {
+  chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const message = userInput.value.trim();
-    
-    if (!message) {
-      addMessage('error', 'Пожалуйста, введите сообщение');
-      return;
-    }
+    if (!message) return;
     
     addMessage('user', message);
     userInput.value = '';
-    sendMessageToAI(message);
+    await sendMessageToAI(message);
   });
-};
-
-// Запускаем чат после загрузки страницы
-document.addEventListener('DOMContentLoaded', initChat);
-
-// Экспортируем функции для тестирования (если нужно)
-if (window.Cypress) {
-  window.chatFunctions = {
-    addMessage,
-    sendMessageToAI,
-    getApiUrl
-  };
-}
+});
