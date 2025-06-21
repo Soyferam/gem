@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "static/*",
+      "src": "static/**",
       "use": "@vercel/static"
     }
   ],
@@ -14,14 +14,11 @@
     {
       "src": "/api/gemini",
       "dest": "/api/gemini",
-      "methods": ["GET", "POST", "OPTIONS"]
+      "methods": ["POST", "OPTIONS"]
     },
     {
       "src": "/(.*)",
       "dest": "/static/$1"
     }
-  ],
-  "env": {
-    "GEMINI_API_KEY": "@gemini-api-key"
-  }
+  ]
 }
