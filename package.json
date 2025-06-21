@@ -1,0 +1,15 @@
+{
+  "name": "gem",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "vercel build",
+    "start": "vercel start"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "express": "^4.18.2",
+    "@vercel/node": "^3.0.0"
+  }
+}
