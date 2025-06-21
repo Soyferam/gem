@@ -13,8 +13,7 @@
   "routes": [
     {
       "src": "/api/gemini",
-      "dest": "/api/gemini",
-      "methods": ["POST", "OPTIONS"]
+      "dest": "/api/gemini"
     },
     {
       "src": "/(.*)",

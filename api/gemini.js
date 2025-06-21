@@ -3,21 +3,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export default async (req, res) => {
-  // Явно разрешаем запросы с вашего домена Vercel и локального development
-  const allowedOrigins = [
-    'https://gem-orpin-beta.vercel.app',
-    'https://gem-h177aykds-aaas-projects-99f40aaf.vercel.app',
-    'http://localhost:3001'
-  ];
-  
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  
+  // Разрешаем все origins для теста (в продакшене укажите конкретные домены)
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
