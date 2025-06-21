@@ -39,7 +39,7 @@ const addMessage = (role, text) => {
 const sendMessageToAI = async (message) => {
   try {
     // Показываем индикатор загрузки
-    const loadingMsg = addMessage('status', 'Коуч печатает...');
+    const loadingMsg = addMessage('status', 'Коуч печатает....');
     
     // Получаем выбранный стиль
     const selectedStyle = document.querySelector('input[name="style"]:checked')?.value || "Энерджайзер-Зажигалка";
