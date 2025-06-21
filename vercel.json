@@ -4,17 +4,13 @@
     {
       "src": "api/gemini.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "static/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/gemini",
       "dest": "/api/gemini",
-      "methods": ["GET", "POST", "OPTIONS"]
+      "methods": ["POST", "OPTIONS"]
     },
     {
       "src": "/(.*)",
