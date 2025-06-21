@@ -2,73 +2,40 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Беговой коуч</title>
   <style>
-    #chat-container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
     #messages {
-      height: 300px;
+      height: 400px;
       overflow-y: auto;
       border: 1px solid #ddd;
       padding: 10px;
       margin-bottom: 10px;
-      background: #f9f9f9;
     }
-    .user-message {
-      background: #e3f2fd;
-      padding: 8px;
-      margin: 5px 0;
-      border-radius: 5px;
-    }
-    .ai-message {
-      background: #e8f5e9;
-      padding: 8px;
-      margin: 5px 0;
-      border-radius: 5px;
-    }
-    .error-message {
-      background: #ffebee;
-      color: #c62828;
-      padding: 8px;
-      margin: 5px 0;
-      border-radius: 5px;
-    }
-    .status-message {
-      color: #666;
-      font-style: italic;
-      padding: 8px;
-      margin: 5px 0;
-    }
-    #chat-form {
-      display: flex;
-      gap: 10px;
-    }
-    #user-input {
-      flex-grow: 1;
-      padding: 8px;
-    }
-    button {
-      padding: 8px 15px;
-      background: #0088cc;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+    .user-message { background: #e3f2fd; margin: 5px 0; padding: 8px; }
+    .ai-message { background: #e8f5e9; margin: 5px 0; padding: 8px; }
+    .error-message { background: #ffebee; color: #c62828; }
+    .status-message { color: #666; font-style: italic; }
+    #chat-form { display: flex; gap: 10px; }
+    #user-input { flex-grow: 1; padding: 8px; }
+    button { padding: 8px 15px; background: #0088cc; color: white; border: none; }
   </style>
 </head>
 <body>
-  <div id="chat-container">
-    <h1>Беговой коуч</h1>
-    <div id="messages"></div>
-    <form id="chat-form">
-      <input type="text" id="user-input" placeholder="Ваш вопрос...">
-      <button type="submit">Отправить</button>
-    </form>
+  <h1>Беговой коуч AI</h1>
+  
+  <div>
+    <label><input type="radio" name="style" value="Энерджайзер-Зажигалка" checked> Энерджайзер</label>
+    <label><input type="radio" name="style" value="Железный Наставник"> Наставник</label>
+    <label><input type="radio" name="style" value="Спокойный Мудрец"> Мудрец</label>
   </div>
+  
+  <div id="messages"></div>
+  <form id="chat-form">
+    <input type="text" id="user-input" placeholder="Ваш вопрос...">
+    <button type="submit">Отправить</button>
+  </form>
+
   <script src="script.js"></script>
 </body>
 </html>
