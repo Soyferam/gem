@@ -1,48 +1,19 @@
-#chat-container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
+/* Добавьте это к существующим стилям */
+.status-message {
+  color: #666;
+  font-style: italic;
+  animation: blink 1s infinite;
 }
 
-#messages {
-  height: 400px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  padding: 10px;
-  margin-bottom: 10px;
-}
-
-.user-message {
-  background: #e3f2fd;
-  margin: 5px 0;
-  padding: 8px;
-}
-
-.ai-message {
-  background: #e8f5e9;
-  margin: 5px 0;
-  padding: 8px;
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .error-message {
-  background: #ffebee;
+  background-color: #ffebee;
   color: #c62828;
-}
-
-#chat-form {
-  display: flex;
-  gap: 10px;
-}
-
-#user-input {
-  flex-grow: 1;
   padding: 8px;
-}
-
-button {
-  padding: 8px 15px;
-  background: #0088cc;
-  color: white;
-  border: none;
-  cursor: pointer;
+  margin: 5px 0;
+  border-radius: 4px;
 }
