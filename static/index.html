@@ -7,10 +7,10 @@
   <style>
     body { font-family: sans-serif; padding: 1em; background: #f4f4f4; }
     #quiz-container, #chat-container { max-width: 500px; margin: auto; background: white; padding: 1em; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    #messages { max-height: 400px; overflow-y: auto; margin-bottom: 1em; }
+    #messages { max-height: 400px; overflow-y: auto; margin-bottom: 1em; display: flex; flex-direction: column; }
     .msg { padding: 0.5em; margin: 0.5em 0; border-radius: 10px; }
     .user { background: #d0f0ff; align-self: flex-end; }
-    .ai { background: #f0f0f0; }
+    .ai { background: #f0f0f0; align-self: flex-start; }
     #loader { text-align: center; padding: 1em; font-style: italic; }
   </style>
 </head>
@@ -19,7 +19,7 @@
 
   <div id="chat-container" style="display: none;">
     <h2>Healthie AI</h2>
-    <div id="messages" style="display: flex; flex-direction: column;"></div>
+    <div id="messages"></div>
     <form id="chat-form">
       <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required />
       <button type="submit">Отправить</button>
@@ -107,6 +107,26 @@
       document.getElementById('loader').style.display = 'none';
     }
 
+    async function loadChatHistory() {
+      const userData = await fetchUserData();
+      if (!userData) return [];
+      if (userData.last_messages && Array.isArray(userData.last_messages)) {
+        return userData.last_messages;
+      }
+      return [];
+    }
+
+    async function updateLastMessages(messages) {
+      // Сохраняем последние сообщения вместе с quizData
+      const dataToSave = {
+        ...quizData,
+        last_messages: messages
+      };
+      await saveQuizData(dataToSave);
+      // Обновляем локальный quizData.last_messages
+      quizData.last_messages = messages;
+    }
+
     async function startChat(withGreeting = false) {
       const chatContainer = document.getElementById('chat-container');
       const messagesDiv = document.getElementById('messages');
@@ -116,23 +136,50 @@
       chatContainer.style.display = 'block';
       messagesDiv.innerHTML = '';
 
-      if (withGreeting) {
+      // Загрузить историю сообщений
+      const history = await loadChatHistory();
+
+      // Отрисовать историю
+      for (const msg of history) {
+        const cls = msg.role === 'user' ? 'user' : 'ai';
+        messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.role === 'user' ? '👤' : '🤖'} ${msg.text}</div>`;
+      }
+
+      if (withGreeting && history.length === 0) {
+        // Если истории нет, отправить приветствие от AI
         const prompt = `Ты — ${quizData.coaching_style}. Пользователь только что завершил квиз.
 Его имя: ${quizData.name}. Он хочет бегать ${quizData.running_frequency} раз в неделю.
 Приветствуй его, поддержи и задай первый вопрос по бегу. Только по-русски, без английских слов кроме названий.`;
         const reply = await sendMessageToAI(prompt);
         messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+        // Сохраняем в локальную историю и на сервер
+        await updateLastMessages([
+          ...history,
+          { role: 'ai', text: reply }
+        ]);
       }
 
       form.onsubmit = async (e) => {
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
+
         messagesDiv.innerHTML += `<div class="msg user">👤 ${text}</div>`;
         input.value = '';
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
         const reply = await sendMessageToAI(text);
         messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        // Обновляем локальный массив сообщений
+        const updatedMessages = [
+          ...history,
+          { role: 'user', text },
+          { role: 'ai', text: reply }
+        ].slice(-15); // только последние 15
+
+        await updateLastMessages(updatedMessages);
       };
     }
 
