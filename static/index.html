@@ -17,7 +17,11 @@
     .msg { padding: 0.5em; margin: 0.5em 0; border-radius: 10px; }
     .user { background: #d0f0ff; align-self: flex-end; }
     .ai { background: #f0f0f0; align-self: flex-start; }
-    #loader { text-align: center; padding: 1em; font-style: italic; }
+    #loader, #typing-indicator { text-align: center; padding: 1em; font-style: italic; }
+    #typing-indicator {
+      font-size: 0.9em;
+      color: #888;
+    }
   </style>
 </head>
 <body>
@@ -124,7 +128,7 @@
     const userData = await fetchUserData();
     if (!userData) return [];
     if (userData.last_messages && Array.isArray(userData.last_messages)) {
-      quizData = userData; // важно: присваиваем всю структуру, чтобы last_greet_ts был
+      quizData = userData;
       return userData.last_messages;
     }
     return [];
@@ -172,47 +176,35 @@
 
     for (const msg of history) {
       const cls = msg.role === 'user' ? 'user' : 'ai';
-      messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.role === 'user' ? '👤' : '🤖'} ${msg.text}</div>`;
+      messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.text}</div>`;
     }
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     if (withGreeting) {
       const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
       const now = Date.now();
-
       const isOnlyAIInHistory = history.every(m => m.role === 'ai');
-
-const shouldGreet =
-  (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) &&
-  !isOnlyAIInHistory;
-
-      console.log('last_greet_ts:', quizData.last_greet_ts);
-      console.log('now:', new Date(now).toISOString());
-      console.log('lastMsg:', lastMsg);
-      console.log('shouldGreet:', shouldGreet);
+      const shouldGreet = (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) && !isOnlyAIInHistory;
 
       if (history.length === 0) {
         const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
         const prompt = `Ты — AI-тренер по бегу. ${profileText}\n\nПользователь только что завершил квиз. Начни первый диалог на тему бега.`;
         const reply = await sendMessageToAI(prompt);
-        messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+        messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         await updateLastMessages([{ role: 'ai', text: reply }]);
         quizData.last_greet_ts = new Date().toISOString();
         await saveQuizData(quizData);
       } else if (shouldGreet) {
-        console.log('Генерируем новое приветствие для пользователя');
         const greetMsg = await generateGreetingFromAI();
-        messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
+        messagesDiv.innerHTML += `<div class="msg ai">${greetMsg}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
         const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
         await saveQuizData({
           ...quizData,
           last_messages: updatedMessages,
           last_greet_ts: new Date().toISOString()
         });
-
         quizData.last_messages = updatedMessages;
         quizData.last_greet_ts = new Date().toISOString();
       }
@@ -223,12 +215,20 @@ const shouldGreet =
       const text = input.value.trim();
       if (!text) return;
 
-      messagesDiv.innerHTML += `<div class="msg user">👤 ${text}</div>`;
+      messagesDiv.innerHTML += `<div class="msg user">${text}</div>`;
       input.value = '';
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
+      const typingDiv = document.createElement('div');
+      typingDiv.id = 'typing-indicator';
+      typingDiv.textContent = 'Healthie AI печатает...';
+      messagesDiv.appendChild(typingDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
       const reply = await sendMessageToAI(text);
-      messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+
+      typingDiv.remove();
+      messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
       const updatedMessages = [
