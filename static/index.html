@@ -124,7 +124,7 @@
     const userData = await fetchUserData();
     if (!userData) return [];
     if (userData.last_messages && Array.isArray(userData.last_messages)) {
-      quizData = userData;
+      quizData = userData; // важно: присваиваем всю структуру, чтобы last_greet_ts был
       return userData.last_messages;
     }
     return [];
@@ -180,11 +180,14 @@
       const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
       const now = Date.now();
 
-      // Проверяем, стоит ли приветствовать:
-      // если не было приветствия, либо прошло более 6 часов, и последнее сообщение от пользователя
       const shouldGreet =
         (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) &&
         lastMsg?.role === 'user';
+
+      console.log('last_greet_ts:', quizData.last_greet_ts);
+      console.log('now:', new Date(now).toISOString());
+      console.log('lastMsg:', lastMsg);
+      console.log('shouldGreet:', shouldGreet);
 
       if (history.length === 0) {
         const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
@@ -196,6 +199,7 @@
         quizData.last_greet_ts = new Date().toISOString();
         await saveQuizData(quizData);
       } else if (shouldGreet) {
+        console.log('Генерируем новое приветствие для пользователя');
         const greetMsg = await generateGreetingFromAI();
         messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
