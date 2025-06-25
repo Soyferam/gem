@@ -3,18 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Чат</title>
+  <title>Healthie AI</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="chat-container">
-    <h1>AI Чат через Coldflare</h1>
+  <div id="quiz-container" style="display: none;"></div>
+  <div id="chat-container" style="display: none;">
+    <h1>Healthie AI</h1>
     <div id="messages"></div>
     <form id="chat-form">
       <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off">
       <button type="submit">Отправить</button>
     </form>
   </div>
-  <script src="script.js"></script>
+
+  <!-- Главный JS -->
+  <script src="api.js"></script>
+  <script src="quiz.js"></script>
+  <script src="chat.js"></script>
 </body>
 </html>
