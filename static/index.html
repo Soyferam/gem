@@ -29,13 +29,8 @@
       align-self: flex-start;
       user-select: none;
     }
-    /* Анимация трех точек */
     #typing-indicator::after {
-      content: '';
-      display: inline-block;
-      width: 1em;
-      text-align: left;
-      animation: dots 1s steps(3, end) infinite;
+      content: ''; display: inline-block; width: 1em; text-align: left; animation: dots 1s steps(3, end) infinite;
     }
     @keyframes dots {
       0%, 20% { content: ''; }
@@ -62,14 +57,9 @@
   const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
   const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
-  const getUserId = () => {
-    try {
-      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe?.user?.id) {
-        return Telegram.WebApp.initDataUnsafe.user.id.toString();
-      }
-    } catch {}
-    return 'test_user';
-  };
+  let userId = 'test_user';
+
+  const getUserId = () => userId;
 
   const quizSteps = [
     { key: 'name', text: 'Как тебя зовут?', type: 'text' },
@@ -81,22 +71,15 @@
   let quizData = {};
 
   async function fetchUserData() {
-    const user_id = getUserId();
-    try {
-      const res = await fetch(`${SHEETS_API_URL}?user_id=${user_id}`);
-      const json = await res.json();
-      return json?.data || null;
-    } catch (e) {
-      return null;
-    }
+    const res = await fetch(`${SHEETS_API_URL}?user_id=${userId}`);
+    const json = await res.json();
+    return json?.data || null;
   }
 
   async function saveQuizData(data) {
-    const user_id = getUserId();
-    const body = { user_id, ...data };
     const res = await fetch(SHEETS_API_URL, {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: JSON.stringify({ user_id: userId, ...data }),
       headers: { 'Content-Type': 'application/json' }
     });
     return await res.json();
@@ -149,17 +132,14 @@
     const userData = await fetchUserData();
     if (!userData) return [];
     if (userData.last_messages && Array.isArray(userData.last_messages)) {
-      quizData = userData; // важно: присваиваем всю структуру, чтобы last_greet_ts был
+      quizData = userData;
       return userData.last_messages;
     }
     return [];
   }
 
   async function updateLastMessages(messages) {
-    const dataToSave = {
-      ...quizData,
-      last_messages: messages
-    };
+    const dataToSave = { ...quizData, last_messages: messages };
     await saveQuizData(dataToSave);
     quizData.last_messages = messages;
   }
@@ -232,11 +212,7 @@
         const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
         quizData.last_messages = updatedMessages;
         quizData.last_greet_ts = new Date().toISOString();
-        await saveQuizData({
-          ...quizData,
-          last_messages: updatedMessages,
-          last_greet_ts: quizData.last_greet_ts
-        });
+        await saveQuizData({ ...quizData });
       }
     }
 
@@ -261,17 +237,20 @@
       messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-      const updatedMessages = [
-        ...(quizData.last_messages || []),
-        { role: 'user', text },
-        { role: 'ai', text: reply }
-      ].slice(-15);
-
+      const updatedMessages = [...(quizData.last_messages || []), { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
       await updateLastMessages(updatedMessages);
     };
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
+    if (window.Telegram && Telegram.WebApp) {
+      Telegram.WebApp.ready();
+      console.log('initDataUnsafe:', Telegram.WebApp.initDataUnsafe);
+      if (Telegram.WebApp.initDataUnsafe?.user?.id) {
+        userId = Telegram.WebApp.initDataUnsafe.user.id.toString();
+      }
+    }
+
     const existingData = await fetchUserData();
     if (existingData && Object.keys(existingData).length >= quizSteps.length) {
       quizData = existingData;
