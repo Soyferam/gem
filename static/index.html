@@ -103,35 +103,22 @@
   }
 
   async function sendMessageToAI(userMessage) {
-  const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
-  const conversation = (quizData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
-  let prompt = `Ты — AI-тренер по бегу. ${profileText}\n\nИстория диалога:\n`;
-  conversation.forEach(msg => {
-    prompt += (msg.role === 'user' ? 'Пользователь: ' : 'AI: ') + msg.text + '\n';
-  });
-  prompt += 'Ответь последовательно и мотивирующе.';
+    const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
+    const conversation = (quizData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
+    let prompt = `Ты — AI-тренер по бегу. ${profileText}\n\nИстория диалога:\n`;
+    conversation.forEach(msg => {
+      prompt += (msg.role === 'user' ? 'Пользователь: ' : 'AI: ') + msg.text + '\n';
+    });
+    prompt += 'Ответь последовательно и мотивирующе.';
 
-  try {
     const res = await fetch(GEMINI_API_URL, {
       method: 'POST',
       body: JSON.stringify({ prompt }),
       headers: { 'Content-Type': 'application/json' }
     });
-
-    if (!res.ok) {
-      console.error('Ошибка запроса к Gemini API:', res.status, res.statusText);
-      return 'Ответа нет (ошибка API)';
-    }
-
     const json = await res.json();
-    console.log('Ответ Gemini API:', json);
-
-    return json?.response || 'Ответа нет';
-  } catch (error) {
-    console.error('Ошибка при запросе к Gemini API:', error);
-    return 'Ответа нет (ошибка сети)';
+    return json?.response || 'Ответ от AI отсутствует';
   }
-}
 
   function showStep(i) {
     const quizContainer = document.getElementById('quiz-container');
