@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Чат</title>
+  <title>Healthie AI</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="chat-container">
+  <!-- Контейнер квиза -->
+  <div id="quiz-container" style="display: none;"></div>
+
+  <!-- Контейнер чата -->
+  <div id="chat-container" style="display: none;">
     <h1>AI Чат через Coldflare</h1>
     <div id="messages"></div>
     <form id="chat-form">
@@ -15,6 +19,10 @@
       <button type="submit">Отправить</button>
     </form>
   </div>
-  <script src="script.js"></script>
+
+  <!-- Подключение модулей -->
+  <script src="quiz.js" type="module"></script>
+  <script src="chat.js" type="module"></script>
+  <script src="script.js" type="module"></script>
 </body>
 </html>

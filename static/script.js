@@ -1,86 +1,33 @@
-const API_URL = "https://cold-credit-3c5d.arsivals.workers.dev/";
+import { startQuiz } from './quiz.js';
+import { startChat } from './chat.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('chat-form');
-  const input = document.getElementById('user-input');
-  const messages = document.getElementById('messages');
-  let loadingMessage = null;
+const SHEETS_API = "https://script.google.com/macros/s/AKfycbzj-2-t4uuy0mrkisVNzyNS9PWnd7epZkVC4FYonslewl1JWXE57O6D8G8optnMQsoP/exec";
 
-  // Функция добавления сообщения
-  const addMessage = (role, text) => {
-    const div = document.createElement('div');
-    div.className = `${role}-message`;
-    
-    // Сохраняем переносы строк
-    div.innerHTML = text.replace(/\n/g, '<br>');
-    
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
-    return div;
-  };
+window.addEventListener('DOMContentLoaded', async () => {
+  const tg = window.Telegram?.WebApp;
+  if (!tg || !tg.initDataUnsafe?.user?.id) {
+    alert("Ошибка: Telegram Mini App не инициализировался");
+    return;
+  }
 
-  // Удаление индикатора загрузки
-  const removeLoading = () => {
-    if (loadingMessage && loadingMessage.parentNode) {
-      messages.removeChild(loadingMessage);
-      loadingMessage = null;
+  tg.expand(); // Разворачиваем WebApp
+  const userId = tg.initDataUnsafe.user.id.toString();
+
+  try {
+    const res = await fetch(`${SHEETS_API}?user_id=${userId}`);
+    const data = await res.json();
+
+    if (data.exists === false) {
+      console.log("Новый пользователь. Запуск квиза.");
+      document.getElementById("quiz-container").style.display = "block";
+      startQuiz(userId);
+    } else {
+      console.log("Пользователь найден. Запуск чата.");
+      document.getElementById("chat-container").style.display = "block";
+      startChat(data);
     }
-  };
-
-  // Обработчик формы
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const message = input.value.trim();
-    if (!message) return;
-
-    // Добавляем сообщение пользователя
-    addMessage('user', message);
-    input.value = '';
-    
-    // Показываем индикатор загрузки
-    removeLoading();
-    loadingMessage = addMessage('status', 'ИИ думает...');
-
-    try {
-      // Отправляем запрос в Coldflare Worker
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          prompt: message // Именно "prompt" ожидает Worker
-        })
-      });
-
-      // Убираем индикатор загрузки
-      removeLoading();
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Ошибка сервера');
-      }
-
-      // Получаем и отображаем ответ
-      const data = await response.json();
-      addMessage('ai', data.response);
-
-    } catch (error) {
-      removeLoading();
-      console.error('Ошибка:', error);
-      
-      // Пытаемся извлечь понятное сообщение об ошибке
-      let errorText = 'Ошибка соединения';
-      try {
-        if (error.message) {
-          const errorObj = JSON.parse(error.message);
-          errorText = errorObj.error || error.message;
-        }
-      } catch (e) {
-        errorText = error.message;
-      }
-      
-      addMessage('error', errorText);
-    }
-  });
+  } catch (err) {
+    console.error("Ошибка при обращении к Google Sheets API:", err);
+    alert("Ошибка загрузки. Попробуйте позже.");
+  }
 });
