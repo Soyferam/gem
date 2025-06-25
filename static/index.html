@@ -168,6 +168,7 @@
 
     const history = await loadChatHistory();
     quizData.last_messages = history;
+    const lastMsg = history[history.length - 1];
 
     for (const msg of history) {
       const cls = msg.role === 'user' ? 'user' : 'ai';
@@ -176,30 +177,40 @@
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     if (withGreeting) {
-      const lastMsg = history[history.length - 1];
-      const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
-      const now = Date.now();
+  const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
+  const now = Date.now();
 
-      if (
-        (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) &&
-        lastMsg?.role === 'user'
-      ) {
-        const greetMsg = await generateGreetingFromAI();
-        messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  const shouldGreet =
+    (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) &&
+    lastMsg?.role === 'user';
 
-        const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
+  if (history.length === 0) {
+  const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
+  let prompt = `Ты — AI-тренер по бегу. ${profileText}\n\nПользователь только что завершил квиз. Начни первый диалог на тему бега.`;
 
-        await saveQuizData({
-          ...quizData,
-          last_messages: updatedMessages,
-          last_greet_ts: new Date().toISOString()
-        });
+  const reply = await sendMessageToAI(prompt);
+  messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  await updateLastMessages([{ role: 'ai', text: reply }]);
+  quizData.last_greet_ts = new Date().toISOString();
+  await saveQuizData(quizData);
+}
+  } else if (shouldGreet) {
+    const greetMsg = await generateGreetingFromAI();
+    messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-        quizData.last_messages = updatedMessages;
-        quizData.last_greet_ts = new Date().toISOString();
-      }
-    }
+    const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
+    await saveQuizData({
+      ...quizData,
+      last_messages: updatedMessages,
+      last_greet_ts: new Date().toISOString()
+    });
+
+    quizData.last_messages = updatedMessages;
+    quizData.last_greet_ts = new Date().toISOString();
+  }
+}
 
     form.onsubmit = async (e) => {
       e.preventDefault();
