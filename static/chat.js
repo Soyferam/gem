@@ -1,35 +1,35 @@
-async function initChat() {
+function startChat() {
+  quizContainer.style.display = 'none';
+  chatContainer.style.display = 'block';
+
+  const messagesDiv = document.getElementById('messages');
   const form = document.getElementById('chat-form');
   const input = document.getElementById('user-input');
-  const messages = document.getElementById('messages');
 
-  const addMessage = (role, text) => {
-    const div = document.createElement('div');
-    div.className = `${role}-message`;
-    div.innerHTML = text.replace(/\n/g, '<br>');
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
-  };
-
-  // Приветственное сообщение от AI
-  const userData = await fetchUserData();
-  const name = userData?.name || 'друг';
-  const style = userData?.coaching_style || '';
-  const motivation = userData?.primary_motivation || '';
-  const prompt = `Ты — AI-коуч в стиле "${style}". Пользователь ${name} хочет бегать. Его мотивация: ${motivation}. Помоги ему начать с первого совета.`;
-
-  const aiGreeting = await sendMessageToAI(prompt);
-  addMessage('ai', aiGreeting);
-
-  // Обработка сообщений
-  form.addEventListener('submit', async (e) => {
+  form.onsubmit = async (e) => {
     e.preventDefault();
-    const message = input.value.trim();
-    if (!message) return;
-    addMessage('user', message);
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Показать сообщение пользователя
+    messagesDiv.innerHTML += `<div class="msg user">👤 ${text}</div>`;
     input.value = '';
 
-    const aiResponse = await sendMessageToAI(message);
-    addMessage('ai', aiResponse);
-  });
+    // Ответ от AI
+    const reply = await sendMessageToAI(text);
+    messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  };
 }
+
+window.startChat = startChat;
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', async () => {
+  window.quizContainer = document.getElementById('quiz-container');
+  window.chatContainer = document.getElementById('chat-container');
+  const u = await fetchUserData();
+  if (u?.success && u.data.exists) return startChat();
+  quizContainer.style.display = 'block';
+  showStep(0); // showStep из quiz.js
+});

@@ -13,7 +13,7 @@ async function fetchUserData() {
   const user_id = getUserId();
   const res = await fetch(`${SHEETS_API_URL}?user_id=${user_id}`);
   const json = await res.json();
-  return json?.data || null;
+  return json;
 }
 
 async function saveQuizData(data) {
