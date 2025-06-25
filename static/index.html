@@ -61,7 +61,7 @@
   const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
   const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
-  // 🟡 userId по умолчанию — тестовый
+  // По умолчанию тестовый userId — заменится, если открыт из Telegram
   let userId = 'test_user';
 
   const getUserId = () => userId;
@@ -76,9 +76,13 @@
   let quizData = {};
 
   async function fetchUserData() {
-    const res = await fetch(`${SHEETS_API_URL}?user_id=${getUserId()}`);
-    const json = await res.json();
-    return json?.data || null;
+    try {
+      const res = await fetch(`${SHEETS_API_URL}?user_id=${getUserId()}`);
+      const json = await res.json();
+      return json?.data || null;
+    } catch {
+      return null;
+    }
   }
 
   async function saveQuizData(data) {
@@ -129,7 +133,8 @@
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('loader').style.display = 'block';
     await saveQuizData(quizData);
-    await startChat(true);
+    // Запускаем чат без автоматического приветствия
+    await startChat(false);
     document.getElementById('loader').style.display = 'none';
   }
 
@@ -167,12 +172,12 @@
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     if (withGreeting) {
-      const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
       const now = Date.now();
+      const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
       const isOnlyAI = history.every(m => m.role === 'ai');
       const shouldGreet = (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) && !isOnlyAI;
 
-      if (history.length === 0 || shouldGreet) {
+      if (shouldGreet) {
         const typingDiv = document.createElement('div');
         typingDiv.id = 'typing-indicator';
         typingDiv.textContent = 'Healthie AI печатает';
@@ -223,30 +228,30 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-  if (window.Telegram && Telegram.WebApp) {
-    Telegram.WebApp.ready();
-    const tgUser = Telegram.WebApp.initDataUnsafe?.user;
-    if (tgUser?.id) {
-      userId = tgUser.id.toString();
-      console.log('✅ Telegram user ID:', userId);
+    if (window.Telegram && Telegram.WebApp) {
+      Telegram.WebApp.ready();
+      const tgUser = Telegram.WebApp.initDataUnsafe?.user;
+      if (tgUser?.id) {
+        userId = tgUser.id.toString();
+        console.log('✅ Telegram user ID:', userId);
+      } else {
+        console.warn('⚠️ Нет user.id в initDataUnsafe');
+      }
     } else {
-      console.warn('⚠️ Нет user.id в initDataUnsafe');
+      console.warn('⚠️ Telegram WebApp не доступен — fallback на test_user');
     }
-  } else {
-    console.warn('⚠️ Telegram WebApp не доступен — fallback на test_user');
-  }
 
-  const existingData = await fetchUserData();
+    const existingData = await fetchUserData();
 
-  // Проверяем, есть ли уже пройденный квиз (например, имя и частота бега)
-  if (existingData && existingData.name && existingData.running_frequency) {
-    quizData = existingData;
-    await startChat(true);  // Запускаем чат, пропуская квиз
-  } else {
-    document.getElementById('quiz-container').style.display = 'block';
-    showStep(0);  // Показываем квиз
-  }
-});
+    // Проверяем, есть ли уже пройденный квиз (например, имя и частота бега)
+    if (existingData && existingData.name && existingData.running_frequency) {
+      quizData = existingData;
+      await startChat(true);  // Запускаем чат, пропуская квиз
+    } else {
+      document.getElementById('quiz-container').style.display = 'block';
+      showStep(0);  // Показываем квиз
+    }
+  });
 </script>
 </body>
 </html>
