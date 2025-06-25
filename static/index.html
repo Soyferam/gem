@@ -4,65 +4,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Healthie AI</title>
-  <link rel="stylesheet" href="styles.css" />
   <style>
-    .msg { margin: 10px 0; }
-    .loading { color: #999; font-style: italic; }
+    body { font-family: sans-serif; padding: 1em; background: #f4f4f4; }
+    #quiz-container, #chat-container { max-width: 500px; margin: auto; background: white; padding: 1em; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    #messages { max-height: 400px; overflow-y: auto; margin-bottom: 1em; }
+    .msg { padding: 0.5em; margin: 0.5em 0; border-radius: 10px; }
+    .user { background: #d0f0ff; align-self: flex-end; }
+    .ai { background: #f0f0f0; }
+    #loader { text-align: center; padding: 1em; font-style: italic; }
   </style>
 </head>
 <body>
   <div id="quiz-container" style="display: none;"></div>
 
   <div id="chat-container" style="display: none;">
-    <h1>Healthie AI</h1>
-    <div id="messages" style="max-height: 400px; overflow-y: auto;"></div>
+    <h2>Healthie AI</h2>
+    <div id="messages" style="display: flex; flex-direction: column;"></div>
     <form id="chat-form">
-      <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" />
+      <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required />
       <button type="submit">Отправить</button>
     </form>
   </div>
+
+  <div id="loader" style="display: none;">Загрузка...</div>
 
   <script>
     const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
     const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
     const getUserId = () => {
-      const id = Telegram?.WebApp?.initDataUnsafe?.user?.id;
-      if (!id) {
-        alert('Не удалось получить Telegram ID. Убедитесь, что вы запустили Mini App через Telegram.');
-        throw new Error('Telegram ID not found');
-      }
-      return id.toString();
+      try {
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe?.user?.id) {
+          return Telegram.WebApp.initDataUnsafe.user.id.toString();
+        }
+      } catch (e) {}
+      return 'test_user';
     };
 
-    async function fetchUserData() {
-      const user_id = getUserId();
-      const res = await fetch(`${SHEETS_API_URL}?user_id=${user_id}`);
-      return await res.json();
-    }
-
-    async function saveQuizData(data) {
-      const user_id = getUserId();
-      const body = { user_id, ...data };
-      const res = await fetch(SHEETS_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      return await res.json();
-    }
-
-    async function sendMessageToAI(prompt) {
-      const res = await fetch(GEMINI_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-      const json = await res.json();
-      return json?.response || 'Ошибка от AI';
-    }
-
-    const steps = [
+    const quizSteps = [
       { key: 'name', text: 'Как тебя зовут?', type: 'text' },
       { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
       { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
@@ -70,97 +49,103 @@
     ];
 
     let quizData = {};
-    let quizContainer, chatContainer, messagesDiv;
-    let firstMessageSent = false;
+
+    async function fetchUserData() {
+      const user_id = getUserId();
+      try {
+        const res = await fetch(`${SHEETS_API_URL}?user_id=${user_id}`);
+        const json = await res.json();
+        return json?.data || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function saveQuizData(data) {
+      const user_id = getUserId();
+      const body = { user_id, ...data };
+      const res = await fetch(SHEETS_API_URL, {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return await res.json();
+    }
+
+    async function sendMessageToAI(prompt) {
+      const res = await fetch(GEMINI_API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const json = await res.json();
+      return json?.response || 'Ответ не получен';
+    }
 
     function showStep(i) {
-      const st = steps[i];
+      const quizContainer = document.getElementById('quiz-container');
+      const st = quizSteps[i];
       quizContainer.innerHTML = `<h3>${st.text}</h3>`;
       const inputHtml = st.type === 'text'
-        ? `<input id="input" required>`
+        ? `<input id="input" required />`
         : `<select id="input">${st.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
       quizContainer.innerHTML += inputHtml + `<button id="next">Далее</button>`;
       document.getElementById('next').onclick = () => {
         const val = document.getElementById('input').value.trim();
         if (!val) return;
         quizData[st.key] = st.type === 'select' && st.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР' ? 'нет' : val;
-        if (i + 1 < steps.length) showStep(i + 1);
+        if (i + 1 < quizSteps.length) showStep(i + 1);
         else finishQuiz();
       };
     }
 
     async function finishQuiz() {
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('loader').style.display = 'block';
       await saveQuizData(quizData);
-      quizContainer.style.display = 'none';
-      startChat();
-      await sendWelcomeMessage(quizData);
+      await startChat(true);
+      document.getElementById('loader').style.display = 'none';
     }
 
-    function startChat() {
-      chatContainer.style.display = 'block';
-
+    async function startChat(withGreeting = false) {
+      const chatContainer = document.getElementById('chat-container');
+      const messagesDiv = document.getElementById('messages');
       const form = document.getElementById('chat-form');
       const input = document.getElementById('user-input');
+
+      chatContainer.style.display = 'block';
+      messagesDiv.innerHTML = '';
+
+      if (withGreeting) {
+        const prompt = `Ты — ${quizData.coaching_style}. Пользователь только что завершил квиз.
+Его имя: ${quizData.name}. Он хочет бегать ${quizData.running_frequency} раз в неделю.
+Приветствуй его, поддержи и задай первый вопрос по бегу. Только по-русски, без английских слов кроме названий.`;
+        const reply = await sendMessageToAI(prompt);
+        messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+      }
 
       form.onsubmit = async (e) => {
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
-
         messagesDiv.innerHTML += `<div class="msg user">👤 ${text}</div>`;
         input.value = '';
-
-        const loading = document.createElement('div');
-        loading.className = 'msg loading';
-        loading.textContent = '🤖 Печатает...';
-        messagesDiv.appendChild(loading);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
         const reply = await sendMessageToAI(text);
-        loading.remove();
         messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
       };
     }
 
-    async function sendWelcomeMessage(user) {
-      if (firstMessageSent) return; // защита от двойного запуска
-      firstMessageSent = true;
-
-      const loading = document.createElement('div');
-      loading.className = 'msg loading';
-      loading.textContent = '🤖 Генерирует приветствие...';
-      messagesDiv.appendChild(loading);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      const prompt = `Ты — ${user.coaching_style}. Пользователь только что завершил квиз.
-Имя: ${user.name}. Он хочет бегать ${user.running_frequency} раз в неделю.
-Поздоровайся, поддержи, задай тон и стиль на старте в духе "${user.coaching_style}".
-Пиши по-русски, избегай английских слов и лишних символов вроде **звёздочек**.`;
-
-      const reply = await sendMessageToAI(prompt);
-      loading.remove();
-      messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-
     document.addEventListener('DOMContentLoaded', async () => {
-      quizContainer = document.getElementById('quiz-container');
-      chatContainer = document.getElementById('chat-container');
-      messagesDiv = document.getElementById('messages');
-
-      try {
-        const userData = await fetchUserData();
-        if (userData?.success && userData.data?.exists) {
-          startChat();
-          await sendWelcomeMessage(userData.data);
-        } else {
-          quizContainer.style.display = 'block';
-          showStep(0);
-        }
-      } catch (e) {
-        alert('Ошибка при загрузке данных пользователя');
-        console.error(e);
+      window.quizContainer = document.getElementById('quiz-container');
+      window.chatContainer = document.getElementById('chat-container');
+      const existingData = await fetchUserData();
+      if (existingData && Object.keys(existingData).length >= quizSteps.length) {
+        quizData = existingData;
+        await startChat(true);
+      } else {
+        document.getElementById('quiz-container').style.display = 'block';
+        showStep(0);
       }
     });
   </script>
