@@ -223,29 +223,30 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    // ✅ Получаем user_id из Telegram WebApp
-    if (window.Telegram && Telegram.WebApp) {
-      Telegram.WebApp.ready();
-      const tgUser = Telegram.WebApp.initDataUnsafe?.user;
-      if (tgUser?.id) {
-        userId = tgUser.id.toString();
-        console.log('✅ Telegram user ID:', userId);
-      } else {
-        console.warn('⚠️ Нет user.id в initDataUnsafe');
-      }
+  if (window.Telegram && Telegram.WebApp) {
+    Telegram.WebApp.ready();
+    const tgUser = Telegram.WebApp.initDataUnsafe?.user;
+    if (tgUser?.id) {
+      userId = tgUser.id.toString();
+      console.log('✅ Telegram user ID:', userId);
     } else {
-      console.warn('⚠️ Telegram WebApp не доступен — fallback на test_user');
+      console.warn('⚠️ Нет user.id в initDataUnsafe');
     }
+  } else {
+    console.warn('⚠️ Telegram WebApp не доступен — fallback на test_user');
+  }
 
-    const existingData = await fetchUserData();
-    if (existingData && Object.keys(existingData).length >= quizSteps.length) {
-      quizData = existingData;
-      await startChat(true);
-    } else {
-      document.getElementById('quiz-container').style.display = 'block';
-      showStep(0);
-    }
-  });
+  const existingData = await fetchUserData();
+
+  // Проверяем, есть ли уже пройденный квиз (например, имя и частота бега)
+  if (existingData && existingData.name && existingData.running_frequency) {
+    quizData = existingData;
+    await startChat(true);  // Запускаем чат, пропуская квиз
+  } else {
+    document.getElementById('quiz-container').style.display = 'block';
+    showStep(0);  // Показываем квиз
+  }
+});
 </script>
 </body>
 </html>
