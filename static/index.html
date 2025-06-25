@@ -124,6 +124,7 @@
     const userData = await fetchUserData();
     if (!userData) return [];
     if (userData.last_messages && Array.isArray(userData.last_messages)) {
+      quizData = userData;
       return userData.last_messages;
     }
     return [];
@@ -174,26 +175,29 @@
     }
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    const greetedThisSession = sessionStorage.getItem('greetedThisSession');
-
     if (withGreeting) {
-      if (history.length === 0) {
-        const prompt = `Ты — ${quizData.coaching_style}. Пользователь только что завершил квиз.\nЕго имя: ${quizData.name}. Он хочет бегать ${quizData.running_frequency} раз в неделю.\nПриветствуй его, поддержи и задай первый вопрос по бегу. Только по-русски, без английских слов кроме названий.`;
-        const reply = await sendMessageToAI(prompt);
-        messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+      const lastMsg = history[history.length - 1];
+      const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
+      const now = Date.now();
+
+      if (
+        (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) &&
+        lastMsg?.role === 'user'
+      ) {
+        const greetMsg = await generateGreetingFromAI();
+        messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        await updateLastMessages([...history, { role: 'ai', text: reply }]);
-        sessionStorage.setItem('greetedThisSession', 'true');
-      } else if (!greetedThisSession) {
-        const lastMsg = history[history.length - 1];
-        if (lastMsg && lastMsg.role === 'user') {
-          const greetMsg = await generateGreetingFromAI();
-          messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
-          messagesDiv.scrollTop = messagesDiv.scrollHeight;
-          const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
-          await updateLastMessages(updatedMessages);
-        }
-        sessionStorage.setItem('greetedThisSession', 'true');
+
+        const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
+
+        await saveQuizData({
+          ...quizData,
+          last_messages: updatedMessages,
+          last_greet_ts: new Date().toISOString()
+        });
+
+        quizData.last_messages = updatedMessages;
+        quizData.last_greet_ts = new Date().toISOString();
       }
     }
 
@@ -221,9 +225,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    window.quizContainer = document.getElementById('quiz-container');
-    window.chatContainer = document.getElementById('chat-container');
-
     const existingData = await fetchUserData();
     if (existingData && Object.keys(existingData).length >= quizSteps.length) {
       quizData = existingData;
