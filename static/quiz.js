@@ -1,61 +1,38 @@
-document.addEventListener('DOMContentLoaded', async () => {
-  const quizContainer = document.getElementById('quiz-container');
-  const chatContainer = document.getElementById('chat-container');
+const steps = [
+  { key: 'name', text:'Как тебя зовут?', type:'text' },
+  { key: 'running_frequency', text:'Сколько раз в неделю хочешь бегать?', type:'select', options:['1','2','3','4+'] },
+  { key: 'coaching_style', text:'Выбери стиль общения:', type:'select', options:['Железный Наставник','Энерджайзер-Зажигалка','Спокойный Мудрец','АБСОЛЮТНЫЙ ДОМИНАТОР'] },
+  { key: 'dominant_style_consent', text:'Подтверждаешь "ДОМИНАТОРА"?', type:'select', options:['нет','да'] }
+];
 
-  const existingData = await fetchUserData();
+let quizData = {};
 
-  if (existingData && existingData.exists !== false) {
-    // Пользователь уже проходил квиз
-    startChat();
-    return;
-  }
-
-  // Отобразить квиз
-  quizContainer.style.display = 'block';
-  quizContainer.innerHTML = `
-    <h2>Давай начнём!</h2>
-    <form id="quiz-form">
-      <label>Имя:</label>
-      <input name="name" required>
-
-      <label>Сколько раз в неделю хочешь бегать?</label>
-      <select name="running_frequency" required>
-        <option value="1">1 раз</option>
-        <option value="2">2 раза</option>
-        <option value="3">3 раза</option>
-        <option value="4+">Больше 3 раз</option>
-      </select>
-
-      <label>Выбери стиль общения:</label>
-      <select name="coaching_style" required>
-        <option value="Железный Наставник">Железный Наставник</option>
-        <option value="Энерджайзер-Зажигалка">Энерджайзер-Зажигалка</option>
-        <option value="Спокойный Мудрец">Спокойный Мудрец</option>
-        <option value="АБСОЛЮТНЫЙ ДОМИНАТОР">АБСОЛЮТНЫЙ ДОМИНАТОР</option>
-      </select>
-
-      <label>Подтверди, если выбрал ДОМИНАТОРА:</label>
-      <select name="dominant_style_consent">
-        <option value="нет">Нет</option>
-        <option value="да">Да</option>
-      </select>
-
-      <button type="submit">Готово</button>
-    </form>
-  `;
-
-  document.getElementById('quiz-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData.entries());
-
-    await saveQuizData(data);
-    quizContainer.style.display = 'none';
-    startChat();
-  });
-});
-
-function startChat() {
-  document.getElementById('chat-container').style.display = 'block';
-  initChat(); // вызывается из chat.js
+function showStep(i) {
+  const st = steps[i];
+  quizContainer.innerHTML = `<h3>${st.text}</h3>`;
+  let inputHtml = st.type==='text' ? `<input id="input" required>` :
+    `<select id="input">${st.options.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
+  quizContainer.innerHTML += inputHtml + `<button id="next">Далее</button>`;
+  document.getElementById('next').onclick = () => {
+    const val = document.getElementById('input').value.trim();
+    if (!val) return;
+    quizData[st.key] = st.type==='select' && st.key==='dominant_style_consent' && quizData.coaching_style!=='АБСОЛЮТНЫЙ ДОМИНАТОР' ? 'нет' : val;
+    if (i+1 < steps.length) showStep(i+1);
+    else finishQuiz();
+  };
 }
+
+async function finishQuiz() {
+  await saveQuizData(quizData);
+  quizContainer.style.display = 'none';
+  startChat();
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  window.quizContainer = document.getElementById('quiz-container');
+  window.chatContainer = document.getElementById('chat-container');
+  const u = await fetchUserData();
+  if (u?.success && u.data.exists) return startChat();
+  quizContainer.style.display='block';
+  showStep(0);
+});
