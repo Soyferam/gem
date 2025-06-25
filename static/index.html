@@ -144,39 +144,101 @@
     }
 
     async function startChat(withGreeting = false) {
-      const chatContainer = document.getElementById('chat-container');
-      const messagesDiv = document.getElementById('messages');
-      const form = document.getElementById('chat-form');
-      const input = document.getElementById('user-input');
+  const chatContainer = document.getElementById('chat-container');
+  const messagesDiv = document.getElementById('messages');
+  const form = document.getElementById('chat-form');
+  const input = document.getElementById('user-input');
 
-      chatContainer.style.display = 'block';
-      messagesDiv.innerHTML = '';
+  chatContainer.style.display = 'block';
+  messagesDiv.innerHTML = '';
 
-      // Загрузить историю сообщений
-      const history = await loadChatHistory();
-      quizData.last_messages = history; // обновляем локально
+  // Загрузить историю сообщений
+  const history = await loadChatHistory();
+  quizData.last_messages = history; // обновляем локально
 
-      // Отрисовать историю
-      for (const msg of history) {
-        const cls = msg.role === 'user' ? 'user' : 'ai';
-        messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.role === 'user' ? '👤' : '🤖'} ${msg.text}</div>`;
-      }
-      messagesDiv.scrollTop = messagesDiv.scrollHeight; // прокрутка вниз при загрузке
+  // Отрисовать историю
+  for (const msg of history) {
+    const cls = msg.role === 'user' ? 'user' : 'ai';
+    messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.role === 'user' ? '👤' : '🤖'} ${msg.text}</div>`;
+  }
+  messagesDiv.scrollTop = messagesDiv.scrollHeight; // прокрутка вниз при загрузке
 
-      if (withGreeting && history.length === 0) {
-        // Если истории нет, отправить приветствие от AI
-        const prompt = `Ты — ${quizData.coaching_style}. Пользователь только что завершил квиз.
+  // Функция проверки последнего приветствия
+  function canGreet() {
+    try {
+      const greetedStr = localStorage.getItem('botGreeted');
+      if (!greetedStr) return true; // не было приветствия
+      const greetedTime = new Date(greetedStr);
+      const now = new Date();
+      // Разница в миллисекундах (24 часа = 86400000)
+      return (now - greetedTime) > 86400000;
+    } catch {
+      return true;
+    }
+  }
+
+  // Сохраняем время последнего приветствия
+  function setGreeted() {
+    try {
+      localStorage.setItem('botGreeted', new Date().toISOString());
+    } catch {}
+  }
+
+  if (withGreeting) {
+    if (history.length === 0) {
+      // Если истории нет — классическое приветствие при первом запуске квиза
+      const prompt = `Ты — ${quizData.coaching_style}. Пользователь только что завершил квиз.
 Его имя: ${quizData.name}. Он хочет бегать ${quizData.running_frequency} раз в неделю.
 Приветствуй его, поддержи и задай первый вопрос по бегу. Только по-русски, без английских слов кроме названий.`;
-        const reply = await sendMessageToAI(prompt);
-        messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
-        messagesDiv.scrollTop = messagesDiv.scrollHeight; // прокрутка вниз после приветствия
-        // Сохраняем в локальную историю и на сервер
-        await updateLastMessages([
-          ...history,
-          { role: 'ai', text: reply }
-        ]);
-      }
+      const reply = await sendMessageToAI(prompt);
+      messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      await updateLastMessages([
+        ...history,
+        { role: 'ai', text: reply }
+      ]);
+      setGreeted();
+    } else if (canGreet()) {
+      // Пользователь уже имел диалог, но прошло больше суток — приветствуем заново
+      const greetMsg = `Привет! Рад снова тебя видеть. Как твои тренировки?`;
+      messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+      // Добавляем в историю и сохраняем
+      const updatedMessages = [
+        ...(quizData.last_messages || []),
+        { role: 'ai', text: greetMsg }
+      ].slice(-15);
+      await updateLastMessages(updatedMessages);
+
+      setGreeted();
+    }
+    // Иначе — не здороваемся повторно (флаг есть и менее суток прошло)
+  }
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+
+    messagesDiv.innerHTML += `<div class="msg user">👤 ${text}</div>`;
+    input.value = '';
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    const reply = await sendMessageToAI(text);
+    messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    // Обновляем локальный массив сообщений
+    const updatedMessages = [
+      ...(quizData.last_messages || []),
+      { role: 'user', text },
+      { role: 'ai', text: reply }
+    ].slice(-15);
+
+    await updateLastMessages(updatedMessages);
+  };
+}
 
       form.onsubmit = async (e) => {
         e.preventDefault();
