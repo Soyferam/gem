@@ -194,7 +194,6 @@
   await updateLastMessages([{ role: 'ai', text: reply }]);
   quizData.last_greet_ts = new Date().toISOString();
   await saveQuizData(quizData);
-}
   } else if (shouldGreet) {
     const greetMsg = await generateGreetingFromAI();
     messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
