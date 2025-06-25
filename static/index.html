@@ -181,37 +181,34 @@
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     if (withGreeting) {
-  const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
-  const now = Date.now();
+      const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
+      const now = Date.now();
+      const isOnlyAIInHistory = history.every(m => m.role === 'ai');
+      const shouldGreet = (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) && !isOnlyAIInHistory;
 
-  const isOnlyAIInHistory = history.every(m => m.role === 'ai');
-  const shouldGreet = (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) && !isOnlyAIInHistory;
-
-  if (history.length === 0) {
-    // Первый вход после квиза
-    const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
-    const prompt = `Ты — AI-тренер по бегу. ${profileText}\n\nПользователь только что завершил квиз. Начни первый диалог на тему бега.`;
-    const reply = await sendMessageToAI(prompt);
-    messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    await updateLastMessages([{ role: 'ai', text: reply }]);
-    quizData.last_greet_ts = new Date().toISOString();
-    await saveQuizData(quizData);
-  } else if (shouldGreet) {
-    // Повторное приветствие спустя >6 часов
-    const greetMsg = await generateGreetingFromAI();
-    messagesDiv.innerHTML += `<div class="msg ai">${greetMsg}</div>`;
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
-    quizData.last_messages = updatedMessages;
-    quizData.last_greet_ts = new Date().toISOString();
-    await saveQuizData({
-      ...quizData,
-      last_messages: updatedMessages,
-      last_greet_ts: quizData.last_greet_ts
-    });
-  }
-}
+      if (history.length === 0) {
+        const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
+        const prompt = `Ты — AI-тренер по бегу. ${profileText}\n\nПользователь только что завершил квиз. Начни первый диалог на тему бега.`;
+        const reply = await sendMessageToAI(prompt);
+        messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        await updateLastMessages([{ role: 'ai', text: reply }]);
+        quizData.last_greet_ts = new Date().toISOString();
+        await saveQuizData(quizData);
+      } else if (shouldGreet) {
+        const greetMsg = await generateGreetingFromAI();
+        messagesDiv.innerHTML += `<div class="msg ai">${greetMsg}</div>`;
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
+        await saveQuizData({
+          ...quizData,
+          last_messages: updatedMessages,
+          last_greet_ts: new Date().toISOString()
+        });
+        quizData.last_messages = updatedMessages;
+        quizData.last_greet_ts = new Date().toISOString();
+      }
+    }
 
     form.onsubmit = async (e) => {
       e.preventDefault();
