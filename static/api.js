@@ -12,8 +12,7 @@ const getUserId = () => {
 async function fetchUserData() {
   const user_id = getUserId();
   const res = await fetch(`${SHEETS_API_URL}?user_id=${user_id}`);
-  const json = await res.json();
-  return json;
+  return await res.json();
 }
 
 async function saveQuizData(data) {
@@ -24,8 +23,7 @@ async function saveQuizData(data) {
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' }
   });
-  const json = await res.json();
-  return json;
+  return await res.json();
 }
 
 async function sendMessageToAI(prompt) {
@@ -37,3 +35,8 @@ async function sendMessageToAI(prompt) {
   const json = await res.json();
   return json?.response || 'Ошибка от AI';
 }
+
+window.fetchUserData = fetchUserData;
+window.saveQuizData = saveQuizData;
+window.sendMessageToAI = sendMessageToAI;
+window.getUserId = getUserId;

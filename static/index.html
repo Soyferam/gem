@@ -17,8 +17,123 @@
     </form>
   </div>
 
-  <script src="api.js"></script>
-  <script src="quiz.js"></script>
-  <script src="chat.js"></script>
+  <script>
+    const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
+    const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
+
+    const getUserId = () => {
+      try {
+        return Telegram.WebApp.initDataUnsafe.user?.id?.toString() || 'test_user';
+      } catch {
+        return 'test_user';
+      }
+    };
+
+    async function fetchUserData() {
+      const user_id = getUserId();
+      const res = await fetch(`${SHEETS_API_URL}?user_id=${user_id}`);
+      return await res.json();
+    }
+
+    async function saveQuizData(data) {
+      const user_id = getUserId();
+      const body = { user_id, ...data };
+      const res = await fetch(SHEETS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      return await res.json();
+    }
+
+    async function sendMessageToAI(prompt) {
+      const res = await fetch(GEMINI_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      const json = await res.json();
+      return json?.response || 'Ошибка от AI';
+    }
+
+    const steps = [
+      { key: 'name', text: 'Как тебя зовут?', type: 'text' },
+      { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
+      { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
+      { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
+    ];
+
+    let quizData = {};
+    let messagesDiv, quizContainer, chatContainer;
+
+    function showStep(i) {
+      const st = steps[i];
+      quizContainer.innerHTML = `<h3>${st.text}</h3>`;
+      let inputHtml = st.type === 'text'
+        ? `<input id="input" required>`
+        : `<select id="input">${st.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+      quizContainer.innerHTML += inputHtml + `<button id="next">Далее</button>`;
+      document.getElementById('next').onclick = () => {
+        const val = document.getElementById('input').value.trim();
+        if (!val) return;
+        quizData[st.key] = st.type === 'select' && st.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР' ? 'нет' : val;
+        if (i + 1 < steps.length) showStep(i + 1);
+        else finishQuiz();
+      };
+    }
+
+    async function finishQuiz() {
+      await saveQuizData(quizData);
+      quizContainer.style.display = 'none';
+      chatContainer.style.display = 'block';
+      sendWelcomeMessage(quizData);
+    }
+
+    function startChat() {
+      quizContainer.style.display = 'none';
+      chatContainer.style.display = 'block';
+
+      const form = document.getElementById('chat-form');
+      const input = document.getElementById('user-input');
+
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+
+        messagesDiv.innerHTML += `<div class="msg user">👤 ${text}</div>`;
+        input.value = '';
+
+        const reply = await sendMessageToAI(text);
+        messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      };
+    }
+
+    async function sendWelcomeMessage(user) {
+      const prompt = `Ты — ${user.coaching_style}. Пользователь только что завершил квиз.
+Имя: ${user.name}. Он хочет бегать ${user.running_frequency} раз в неделю.
+Поздоровайся, поддержи, задай тон и стиль на старте в духе "${user.coaching_style}".
+Пиши по-русски, избегай английских слов и лишних символов вроде **звёздочек**.`;
+
+      const reply = await sendMessageToAI(prompt);
+      messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      quizContainer = document.getElementById('quiz-container');
+      chatContainer = document.getElementById('chat-container');
+      messagesDiv = document.getElementById('messages');
+
+      const userData = await fetchUserData();
+      if (userData?.success && userData.data?.exists) {
+        startChat();
+        sendWelcomeMessage(userData.data);
+      } else {
+        quizContainer.style.display = 'block';
+        showStep(0);
+      }
+    });
+  </script>
 </body>
 </html>
