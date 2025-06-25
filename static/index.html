@@ -14,13 +14,34 @@
       max-height: 400px; overflow-y: auto; margin-bottom: 1em;
       display: flex; flex-direction: column;
     }
-    .msg { padding: 0.5em; margin: 0.5em 0; border-radius: 10px; }
+    .msg { padding: 0.5em; margin: 0.5em 0; border-radius: 10px; max-width: 80%; word-wrap: break-word; }
     .user { background: #d0f0ff; align-self: flex-end; }
     .ai { background: #f0f0f0; align-self: flex-start; }
-    #loader, #typing-indicator { text-align: center; padding: 1em; font-style: italic; }
+    #loader { text-align: center; padding: 1em; font-style: italic; }
     #typing-indicator {
-      font-size: 0.9em;
+      font-style: italic;
       color: #888;
+      padding: 0.5em 1em;
+      margin: 0.5em 0;
+      max-width: 80%;
+      border-radius: 10px;
+      background: #f0f0f0;
+      align-self: flex-start;
+      user-select: none;
+    }
+    /* Анимация трех точек */
+    #typing-indicator::after {
+      content: '';
+      display: inline-block;
+      width: 1em;
+      text-align: left;
+      animation: dots 1s steps(3, end) infinite;
+    }
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%, 100% { content: '...'; }
     }
   </style>
 </head>
@@ -128,7 +149,7 @@
     const userData = await fetchUserData();
     if (!userData) return [];
     if (userData.last_messages && Array.isArray(userData.last_messages)) {
-      quizData = userData;
+      quizData = userData; // важно: присваиваем всю структуру, чтобы last_greet_ts был
       return userData.last_messages;
     }
     return [];
@@ -196,17 +217,26 @@
         quizData.last_greet_ts = new Date().toISOString();
         await saveQuizData(quizData);
       } else if (shouldGreet) {
+        const typingDiv = document.createElement('div');
+        typingDiv.id = 'typing-indicator';
+        typingDiv.textContent = 'Healthie AI печатает';
+        messagesDiv.appendChild(typingDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
         const greetMsg = await generateGreetingFromAI();
+
+        typingDiv.remove();
         messagesDiv.innerHTML += `<div class="msg ai">${greetMsg}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
         const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
+        quizData.last_messages = updatedMessages;
+        quizData.last_greet_ts = new Date().toISOString();
         await saveQuizData({
           ...quizData,
           last_messages: updatedMessages,
-          last_greet_ts: new Date().toISOString()
+          last_greet_ts: quizData.last_greet_ts
         });
-        quizData.last_messages = updatedMessages;
-        quizData.last_greet_ts = new Date().toISOString();
       }
     }
 
@@ -221,7 +251,7 @@
 
       const typingDiv = document.createElement('div');
       typingDiv.id = 'typing-indicator';
-      typingDiv.textContent = 'Healthie AI печатает...';
+      typingDiv.textContent = 'Healthie AI печатает';
       messagesDiv.appendChild(typingDiv);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
