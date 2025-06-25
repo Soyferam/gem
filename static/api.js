@@ -1,4 +1,4 @@
-const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw8iAI4fw1GePyzCU4rcTN2n1wWnkJkfAAokQn_YRGrpgPuvvDQDq3shR-qUtVFllOp/exec';
+const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbxW435auTycJVAaq66gmJnN3ENi8Dy01Fm0urMvNgw21bJuwHcSZTxaW9otfNg4A1By/exec';
 const GEMINI_API_URL = "https://cold-credit-3c5d.arsivals.workers.dev/";
 
 // Условно фейковый ID, если нет Telegram WebApp
