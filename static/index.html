@@ -23,7 +23,6 @@
 <body>
 
 <div id="quiz-container" style="display:none;"></div>
-
 <div id="chat-container" style="display:none;">
   <h2>Healthie AI</h2>
   <div id="messages"></div>
@@ -32,14 +31,12 @@
     <button type="submit">Отправить</button>
   </form>
 </div>
-
 <div id="loader" style="display:none;">Загрузка...</div>
 
 <script>
   const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
   const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
-  // Получаем ID пользователя (Telegram или тест)
   const getUserId = () => {
     try {
       if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe?.user?.id) {
@@ -49,7 +46,6 @@
     return 'test_user';
   };
 
-  // Квиз - шаги (оставляем без изменений)
   const quizSteps = [
     { key: 'name', text: 'Как тебя зовут?', type: 'text' },
     { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
@@ -81,22 +77,15 @@
     return await res.json();
   }
 
-  // Отправка запроса к AI
   async function sendMessageToAI(userMessage) {
-    // Формируем контекст из quizData и истории last_messages
     const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
-
-    // История сообщений + новое сообщение от пользователя
     const conversation = (quizData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
-
-    // Собираем полный текст промпта для AI
     let prompt = `Ты — AI-тренер по бегу. ${profileText}\n\nИстория диалога:\n`;
     conversation.forEach(msg => {
       prompt += (msg.role === 'user' ? 'Пользователь: ' : 'AI: ') + msg.text + '\n';
     });
     prompt += 'Ответь последовательно и мотивирующе.';
 
-    // Запрос к API Gemini с этим prompt
     const res = await fetch(GEMINI_API_URL, {
       method: 'POST',
       body: JSON.stringify({ prompt }),
@@ -106,7 +95,6 @@
     return json?.response || 'Ответ от AI отсутствует';
   }
 
-  // Показать шаг квиза
   function showStep(i) {
     const quizContainer = document.getElementById('quiz-container');
     const st = quizSteps[i];
@@ -124,7 +112,6 @@
     };
   }
 
-  // Завершение квиза
   async function finishQuiz() {
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('loader').style.display = 'block';
@@ -133,7 +120,6 @@
     document.getElementById('loader').style.display = 'none';
   }
 
-  // Загрузка истории чата с сервера
   async function loadChatHistory() {
     const userData = await fetchUserData();
     if (!userData) return [];
@@ -143,7 +129,6 @@
     return [];
   }
 
-  // Сохранение истории чата на сервере
   async function updateLastMessages(messages) {
     const dataToSave = {
       ...quizData,
@@ -153,12 +138,9 @@
     quizData.last_messages = messages;
   }
 
-  // Запрос приветственного сообщения ИИ с учетом истории
   async function generateGreetingFromAI() {
-    // Используем всю историю сообщений
     const history = quizData.last_messages || [];
     const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
-
     let prompt = `Ты — AI-тренер по бегу. ${profileText}\n\nИстория диалога:\n`;
     history.forEach(msg => {
       prompt += (msg.role === 'user' ? 'Пользователь: ' : 'AI: ') + msg.text + '\n';
@@ -174,7 +156,6 @@
     return json?.response || 'Привет! Как твои тренировки?';
   }
 
-  // Основная функция запуска чата
   async function startChat(withGreeting = false) {
     const chatContainer = document.getElementById('chat-container');
     const messagesDiv = document.getElementById('messages');
@@ -184,50 +165,38 @@
     chatContainer.style.display = 'block';
     messagesDiv.innerHTML = '';
 
-    // Загружаем историю
     const history = await loadChatHistory();
     quizData.last_messages = history;
 
-    // Отрисовываем историю
     for (const msg of history) {
       const cls = msg.role === 'user' ? 'user' : 'ai';
       messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.role === 'user' ? '👤' : '🤖'} ${msg.text}</div>`;
     }
-    messagesDiv.scrollTop = messagesDiv.scrollHeight; // прокрутка вниз
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    // Проверка флага приветствия в текущей сессии
     const greetedThisSession = sessionStorage.getItem('greetedThisSession');
 
     if (withGreeting) {
       if (history.length === 0) {
-        // Если нет истории, классическое приветствие после квиза
-        const prompt = `Ты — ${quizData.coaching_style}. Пользователь только что завершил квиз.
-Его имя: ${quizData.name}. Он хочет бегать ${quizData.running_frequency} раз в неделю.
-Приветствуй его, поддержи и задай первый вопрос по бегу. Только по-русски, без английских слов кроме названий.`;
+        const prompt = `Ты — ${quizData.coaching_style}. Пользователь только что завершил квиз.\nЕго имя: ${quizData.name}. Он хочет бегать ${quizData.running_frequency} раз в неделю.\nПриветствуй его, поддержи и задай первый вопрос по бегу. Только по-русски, без английских слов кроме названий.`;
         const reply = await sendMessageToAI(prompt);
         messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        await updateLastMessages([
-          ...history,
-          { role: 'ai', text: reply }
-        ]);
+        await updateLastMessages([...history, { role: 'ai', text: reply }]);
         sessionStorage.setItem('greetedThisSession', 'true');
       } else if (!greetedThisSession) {
-        // Если есть история и это первый заход в сессии — приветствуем с учетом контекста
-        const greetMsg = await generateGreetingFromAI();
-        messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        const updatedMessages = [
-          ...quizData.last_messages,
-          { role: 'ai', text: greetMsg }
-        ].slice(-15);
-        await updateLastMessages(updatedMessages);
+        const lastMsg = history[history.length - 1];
+        if (lastMsg && lastMsg.role === 'user') {
+          const greetMsg = await generateGreetingFromAI();
+          messagesDiv.innerHTML += `<div class="msg ai">🤖 ${greetMsg}</div>`;
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          const updatedMessages = [...quizData.last_messages, { role: 'ai', text: greetMsg }].slice(-15);
+          await updateLastMessages(updatedMessages);
+        }
         sessionStorage.setItem('greetedThisSession', 'true');
       }
-      // Если уже приветствовали в этой сессии — ничего не делаем
     }
 
-    // Обработка отправки сообщений пользователем
     form.onsubmit = async (e) => {
       e.preventDefault();
       const text = input.value.trim();
@@ -241,7 +210,6 @@
       messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-      // Обновляем историю и сохраняем
       const updatedMessages = [
         ...(quizData.last_messages || []),
         { role: 'user', text },
@@ -252,7 +220,6 @@
     };
   }
 
-  // При загрузке страницы
   document.addEventListener('DOMContentLoaded', async () => {
     window.quizContainer = document.getElementById('quiz-container');
     window.chatContainer = document.getElementById('chat-container');
@@ -260,7 +227,7 @@
     const existingData = await fetchUserData();
     if (existingData && Object.keys(existingData).length >= quizSteps.length) {
       quizData = existingData;
-      await startChat(true);  // Запускаем чат с приветствием (если надо)
+      await startChat(true);
     } else {
       document.getElementById('quiz-container').style.display = 'block';
       showStep(0);
