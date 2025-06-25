@@ -5,9 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Healthie AI</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .msg { margin: 10px 0; }
+    .loading { color: #999; font-style: italic; }
+  </style>
 </head>
 <body>
   <div id="quiz-container" style="display: none;"></div>
+
   <div id="chat-container" style="display: none;">
     <h1>Healthie AI</h1>
     <div id="messages" style="max-height: 400px; overflow-y: auto;"></div>
@@ -22,11 +27,12 @@
     const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
     const getUserId = () => {
-      try {
-        return Telegram.WebApp.initDataUnsafe.user?.id?.toString() || 'test_user';
-      } catch {
-        return 'test_user';
+      const id = Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      if (!id) {
+        alert('Не удалось получить Telegram ID. Убедитесь, что вы запустили Mini App через Telegram.');
+        throw new Error('Telegram ID not found');
       }
+      return id.toString();
     };
 
     async function fetchUserData() {
@@ -64,12 +70,13 @@
     ];
 
     let quizData = {};
-    let messagesDiv, quizContainer, chatContainer;
+    let quizContainer, chatContainer, messagesDiv;
+    let firstMessageSent = false;
 
     function showStep(i) {
       const st = steps[i];
       quizContainer.innerHTML = `<h3>${st.text}</h3>`;
-      let inputHtml = st.type === 'text'
+      const inputHtml = st.type === 'text'
         ? `<input id="input" required>`
         : `<select id="input">${st.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
       quizContainer.innerHTML += inputHtml + `<button id="next">Далее</button>`;
@@ -85,12 +92,11 @@
     async function finishQuiz() {
       await saveQuizData(quizData);
       quizContainer.style.display = 'none';
-      chatContainer.style.display = 'block';
-      sendWelcomeMessage(quizData);
+      startChat();
+      await sendWelcomeMessage(quizData);
     }
 
     function startChat() {
-      quizContainer.style.display = 'none';
       chatContainer.style.display = 'block';
 
       const form = document.getElementById('chat-form');
@@ -104,20 +110,38 @@
         messagesDiv.innerHTML += `<div class="msg user">👤 ${text}</div>`;
         input.value = '';
 
+        const loading = document.createElement('div');
+        loading.className = 'msg loading';
+        loading.textContent = '🤖 Печатает...';
+        messagesDiv.appendChild(loading);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
         const reply = await sendMessageToAI(text);
+        loading.remove();
         messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
       };
     }
 
     async function sendWelcomeMessage(user) {
+      if (firstMessageSent) return; // защита от двойного запуска
+      firstMessageSent = true;
+
+      const loading = document.createElement('div');
+      loading.className = 'msg loading';
+      loading.textContent = '🤖 Генерирует приветствие...';
+      messagesDiv.appendChild(loading);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
       const prompt = `Ты — ${user.coaching_style}. Пользователь только что завершил квиз.
 Имя: ${user.name}. Он хочет бегать ${user.running_frequency} раз в неделю.
 Поздоровайся, поддержи, задай тон и стиль на старте в духе "${user.coaching_style}".
 Пиши по-русски, избегай английских слов и лишних символов вроде **звёздочек**.`;
 
       const reply = await sendMessageToAI(prompt);
+      loading.remove();
       messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -125,13 +149,18 @@
       chatContainer = document.getElementById('chat-container');
       messagesDiv = document.getElementById('messages');
 
-      const userData = await fetchUserData();
-      if (userData?.success && userData.data?.exists) {
-        startChat();
-        sendWelcomeMessage(userData.data);
-      } else {
-        quizContainer.style.display = 'block';
-        showStep(0);
+      try {
+        const userData = await fetchUserData();
+        if (userData?.success && userData.data?.exists) {
+          startChat();
+          await sendWelcomeMessage(userData.data);
+        } else {
+          quizContainer.style.display = 'block';
+          showStep(0);
+        }
+      } catch (e) {
+        alert('Ошибка при загрузке данных пользователя');
+        console.error(e);
       }
     });
   </script>
