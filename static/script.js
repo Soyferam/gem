@@ -1,16 +1,18 @@
-import { startQuiz } from './quiz.js';
-import { startChat } from './chat.js';
+import { startQuiz } from "./quiz.js";
+import { startChat } from "./chat.js";
 
-const SHEETS_API = "https://script.google.com/macros/s/AKfycbzj-2-t4uuy0mrkisVNzyNS9PWnd7epZkVC4FYonslewl1JWXE57O6D8G8optnMQsoP/exec";
+const SHEETS_API =
+  "https://script.google.com/macros/s/AKfycbzj-2-t4uuy0mrkisVNzyNS9PWnd7epZkVC4FYonslewl1JWXE57O6D8G8optnMQsoP/exec";
 
-window.addEventListener('DOMContentLoaded', async () => {
+async function init() {
   const tg = window.Telegram?.WebApp;
   if (!tg || !tg.initDataUnsafe?.user?.id) {
     alert("Ошибка: Telegram Mini App не инициализировался");
     return;
   }
 
-  tg.expand(); // Разворачиваем WebApp
+  tg.expand();
+
   const userId = tg.initDataUnsafe.user.id.toString();
 
   try {
@@ -18,11 +20,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     const data = await res.json();
 
     if (data.exists === false) {
-      console.log("Новый пользователь. Запуск квиза.");
+      // Новый пользователь — запускаем квиз
       document.getElementById("quiz-container").style.display = "block";
       startQuiz(userId);
     } else {
-      console.log("Пользователь найден. Запуск чата.");
+      // Пользователь найден — запускаем чат с данными
       document.getElementById("chat-container").style.display = "block";
       startChat(data);
     }
@@ -30,4 +32,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     console.error("Ошибка при обращении к Google Sheets API:", err);
     alert("Ошибка загрузки. Попробуйте позже.");
   }
-});
+}
+
+window.addEventListener("DOMContentLoaded", init);

@@ -5,31 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Healthie AI</title>
 
-  <!-- Telegram WebApp SDK -->
+  <!-- Telegram Web App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Квиз -->
-  <div id="quiz-container" style="display:none;"></div>
+  <!-- Контейнер квиза -->
+  <div id="quiz-container" style="display: none;"></div>
 
-  <!-- Чат -->
-  <div id="chat-container" style="display:none;">
+  <!-- Контейнер чата -->
+  <div id="chat-container" style="display: none;">
     <h1>AI Чат через Coldflare</h1>
     <div id="messages"></div>
     <form id="chat-form">
-      <input
-        type="text"
-        id="user-input"
-        placeholder="Ваше сообщение..."
-        autocomplete="off"
-      />
+      <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" />
       <button type="submit">Отправить</button>
     </form>
   </div>
 
   <!-- Скрипты -->
-  <script type="module" src="main.js"></script>
+  <script type="module" src="quiz.js"></script>
+  <script type="module" src="chat.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
