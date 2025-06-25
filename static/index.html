@@ -4,10 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Healthie AI</title>
-
-  <!-- ✅ Подключаем Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
   <style>
     body { font-family: sans-serif; padding: 1em; background: #f4f4f4; }
     #quiz-container, #chat-container {
@@ -61,7 +58,6 @@
   const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
   const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
-  // По умолчанию тестовый userId — заменится, если открыт из Telegram
   let userId = 'test_user';
 
   const getUserId = () => userId;
@@ -79,19 +75,28 @@
     try {
       const res = await fetch(`${SHEETS_API_URL}?user_id=${getUserId()}`);
       const json = await res.json();
+      console.log('fetchUserData response:', json);
       return json?.data || null;
-    } catch {
+    } catch (e) {
+      console.error('fetchUserData error:', e);
       return null;
     }
   }
 
   async function saveQuizData(data) {
-    const res = await fetch(SHEETS_API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ user_id: getUserId(), ...data }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-    return await res.json();
+    try {
+      const res = await fetch(SHEETS_API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: getUserId(), ...data }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const json = await res.json();
+      console.log('saveQuizData response:', json);
+      return json;
+    } catch (e) {
+      console.error('saveQuizData error:', e);
+      return null;
+    }
   }
 
   async function sendMessageToAI(userMessage) {
@@ -103,13 +108,19 @@
     });
     prompt += 'Ответь последовательно и мотивирующе.';
 
-    const res = await fetch(GEMINI_API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ prompt }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const json = await res.json();
-    return json?.response || 'Ответ от AI отсутствует';
+    try {
+      const res = await fetch(GEMINI_API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const json = await res.json();
+      console.log('sendMessageToAI response:', json);
+      return json?.response || 'Ответ от AI отсутствует';
+    } catch(e) {
+      console.error('sendMessageToAI error:', e);
+      return 'Ошибка получения ответа от AI';
+    }
   }
 
   function showStep(i) {
@@ -133,7 +144,6 @@
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('loader').style.display = 'block';
     await saveQuizData(quizData);
-    // Запускаем чат без автоматического приветствия
     await startChat(false);
     document.getElementById('loader').style.display = 'none';
   }
@@ -243,13 +253,16 @@
 
     const existingData = await fetchUserData();
 
-    // Проверяем, есть ли уже пройденный квиз (например, имя и частота бега)
-    if (existingData && existingData.name && existingData.running_frequency) {
+    if (
+      existingData &&
+      existingData.name && existingData.name.trim() !== '' &&
+      existingData.running_frequency && existingData.running_frequency.trim() !== ''
+    ) {
       quizData = existingData;
-      await startChat(true);  // Запускаем чат, пропуская квиз
+      await startChat(true);
     } else {
       document.getElementById('quiz-container').style.display = 'block';
-      showStep(0);  // Показываем квиз
+      showStep(0);
     }
   });
 </script>
