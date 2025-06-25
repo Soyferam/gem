@@ -180,9 +180,11 @@
       const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
       const now = Date.now();
 
-      const shouldGreet =
-        (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) &&
-        lastMsg?.role === 'user';
+      const isOnlyAIInHistory = history.every(m => m.role === 'ai');
+
+const shouldGreet =
+  (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) &&
+  !isOnlyAIInHistory;
 
       console.log('last_greet_ts:', quizData.last_greet_ts);
       console.log('now:', new Date(now).toISOString());
