@@ -18,7 +18,7 @@
       content: '';
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-image: url('bg/default.jpg');
+      background-image: var(--bg-url, url('bg/default.jpg'));
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -142,7 +142,9 @@
 </head>
 <body>
 <div id="loader">Загрузка Healthie AI...</div>
+
 <div id="quiz-container" style="display:none;"></div>
+
 <div id="chat-container" style="display:none;">
   <div id="messages"></div>
   <form id="chat-form">
@@ -177,7 +179,7 @@ function getBackgroundByStyle(style) {
 
 function setBackgroundImage(style) {
   const url = getBackgroundByStyle(style);
-  document.body.style.backgroundImage = `url(${url})`;
+  document.body.style.setProperty('--bg-url', `url(${url})`);
 }
 
 async function fetchUserData() {
@@ -239,7 +241,7 @@ async function finishQuiz() {
   quizData.last_messages = [];
   quizData.last_greet_ts = new Date().toISOString();
   await saveQuizData(quizData);
-  await startChat(false, quizData); // передаём актуальные данные
+  await startChat(false, quizData);
   document.getElementById('loader').style.display = 'none';
 }
 
