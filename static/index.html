@@ -33,7 +33,7 @@
       height: 100vh;
       padding: 20px 16px 80px;
       box-sizing: border-box;
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(10px);
     }
     #quiz-container h3 {
@@ -77,16 +77,20 @@
       font-size: 0.95em;
       line-height: 1.4;
       word-wrap: break-word;
+      background: rgba(255, 255, 255, 0.75);
+      color: #111;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       backdrop-filter: blur(4px);
-      background-color: rgba(255, 255, 255, 0.6);
     }
     .user {
       align-self: flex-end;
-      background-color: rgba(208, 240, 255, 0.7);
+      background: rgba(208, 240, 255, 0.75);
+      color: #111;
     }
     .ai {
       align-self: flex-start;
-      background-color: rgba(230, 230, 230, 0.7);
+      background: rgba(230, 230, 230, 0.75);
+      color: #111;
     }
     #chat-form {
       display: flex;
@@ -143,6 +147,7 @@
       </button>
     </form>
   </div>
+
   <script>
     const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
     const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
