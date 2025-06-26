@@ -18,7 +18,7 @@
       content: '';
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-image: url('bg/iron.jpg'); /* Будет заменяться динамически */
+      background-image: url('bg/default.jpg'); /* заменяется динамически */
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -31,7 +31,8 @@
       align-items: center;
       height: 100vh;
       font-size: 1.2em;
-      color: #888;
+      color: #fff;
+      backdrop-filter: blur(6px);
     }
 
     #quiz-container, #chat-container {
@@ -45,6 +46,37 @@
       background: transparent;
     }
 
+    /* Квиз */
+    #quiz-container h3 {
+      text-align: center;
+      font-size: 1.4em;
+      color: #fff;
+      margin-bottom: 1em;
+    }
+
+    #quiz-container input,
+    #quiz-container select {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1em;
+      border-radius: 20px;
+      border: none;
+      margin-bottom: 1em;
+      background: rgba(255, 255, 255, 0.9);
+      color: #000;
+    }
+
+    #quiz-container button {
+      padding: 14px 20px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 25px;
+      background-color: #5865F2;
+      color: white;
+      width: 100%;
+      text-align: center;
+    }
+
     #messages {
       flex-grow: 1;
       overflow-y: auto;
@@ -55,8 +87,8 @@
     }
 
     .msg {
-      padding: 0.5em 1em;
-      border-radius: 12px;
+      padding: 10px 16px;
+      border-radius: 20px;
       max-width: 80%;
       word-wrap: break-word;
       background: rgba(255,255,255,0.8);
@@ -81,8 +113,9 @@
       flex-grow: 1;
       border-radius: 20px;
       padding: 10px;
-      border: 1px solid #ccc;
+      border: none;
       font-size: 1em;
+      background: rgba(255,255,255,0.9);
     }
 
     #chat-form button {
@@ -90,8 +123,9 @@
       background-color: #5865F2;
       color: white;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2em;
     }
 
     #chat-form button:disabled {
@@ -100,8 +134,10 @@
   </style>
 </head>
 <body>
-<div id="loader">Загрузка...</div>
+<div id="loader">Загрузка Healthie AI...</div>
+
 <div id="quiz-container" style="display:none;"></div>
+
 <div id="chat-container" style="display:none;">
   <div id="messages"></div>
   <form id="chat-form">
@@ -131,12 +167,11 @@ function getBackgroundByStyle(style) {
     'Спокойный Мудрец': 'bg/sage.jpg',
     'АБСОЛЮТНЫЙ ДОМИНАТОР': 'bg/dominator.jpg'
   };
-  return map[style] || 'bg/iron.jpg';
+  return map[style] || 'bg/default.jpg';
 }
 
 function setBackgroundImage(style) {
   const url = getBackgroundByStyle(style);
-  document.body.style.setProperty('--bg', `url(${url})`);
   document.body.style.backgroundImage = `url(${url})`;
 }
 
@@ -174,14 +209,16 @@ async function sendMessageToAI(userMessage) {
 }
 
 function showStep(i) {
+  setBackgroundImage('default'); // фон квиза
   const container = document.getElementById('quiz-container');
   const step = quizSteps[i];
-  container.style.display = 'block';
+  container.style.display = 'flex';
   container.innerHTML = `<h3>${step.text}</h3>`;
   const inputHtml = step.type === 'text'
     ? `<input id="input" required />`
     : `<select id="input">${step.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
   container.innerHTML += inputHtml + `<button id="next">Далее</button>`;
+
   document.getElementById('next').onclick = () => {
     const val = document.getElementById('input').value.trim();
     if (!val) return;
@@ -193,7 +230,7 @@ function showStep(i) {
 
 async function finishQuiz() {
   document.getElementById('quiz-container').style.display = 'none';
-  document.getElementById('loader').style.display = 'block';
+  document.getElementById('loader').style.display = 'flex';
   quizData.last_messages = [];
   quizData.last_greet_ts = new Date().toISOString();
   await saveQuizData(quizData);
@@ -216,8 +253,8 @@ async function startChat(skipGreeting = false) {
 
   quizData = userData;
   setBackgroundImage(quizData.coaching_style);
-
   const history = quizData.last_messages || [];
+
   document.getElementById('chat-container').style.display = 'flex';
   document.getElementById('loader').style.display = 'none';
   messagesDiv.innerHTML = '';
@@ -269,7 +306,6 @@ async function startChat(skipGreeting = false) {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     const reply = await sendMessageToAI(text);
-
     typing.remove();
     messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
