@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Healthie AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
@@ -10,331 +10,308 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      touch-action: manipulation;
+      z-index: -1;
+      opacity: 1;
+      transition: background-image 0.3s ease-in-out;
+    }
+
+    #quiz-container, #chat-container {
+      max-width: 500px;
+      margin: auto;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 1em;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
     }
 
     #loader {
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      padding: 2em;
+      font-style: italic;
       font-size: 1.2em;
-      color: #888;
-      background: rgba(255,255,255,0.7);
-      backdrop-filter: blur(5px);
-    }
-
-    #quiz-container, #chat-container {
-      position: relative;
-      z-index: 2;
-      max-width: 420px;
-      margin: auto;
-      height: 100vh;
-      padding: 20px 16px 80px;
-      box-sizing: border-box;
-      background-color: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      overflow-y: auto;
-    }
-
-    #quiz-container h3 {
-      text-align: center;
-      font-size: 1.2em;
-      margin-bottom: 20px;
-      color: white;
-    }
-
-    #quiz-container input,
-    #quiz-container select {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 20px;
-      border-radius: 16px;
-      border: none;
-      font-size: 1em;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
-    #quiz-container button {
-      width: 100%;
-      padding: 12px;
-      background-color: #5865F2;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      font-size: 1em;
-      transition: background 0.3s ease;
     }
 
     #messages {
+      flex-grow: 1;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
-      max-height: calc(100vh - 130px);
-      padding: 8px;
+      gap: 8px;
+      padding-bottom: 10px;
     }
 
     .msg {
+      padding: 0.5em 0.9em;
+      margin: 0 0.5em;
+      border-radius: 12px;
       max-width: 80%;
-      padding: 10px 14px;
-      margin: 6px;
-      border-radius: 18px;
-      font-size: 0.95em;
-      line-height: 1.4;
       word-wrap: break-word;
-      background: rgba(255, 255, 255, 0.75);
-      color: #111;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      backdrop-filter: blur(4px);
+      white-space: pre-wrap;
     }
 
     .user {
+      background: rgba(160, 220, 255, 0.8);
       align-self: flex-end;
-      background: rgba(208, 240, 255, 0.75);
     }
 
     .ai {
+      background: rgba(230, 230, 230, 0.85);
       align-self: flex-start;
-      background: rgba(230, 230, 230, 0.75);
     }
 
     #chat-form {
       display: flex;
-      align-items: center;
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 420px;
-      background: rgba(255,255,255,0.9);
-      padding: 8px 12px;
-      box-sizing: border-box;
-      z-index: 3;
+      margin-top: auto;
+      gap: 8px;
     }
 
-    #user-input {
+    #chat-form input {
       flex-grow: 1;
-      border: none;
+      border: 1px solid #ccc;
       border-radius: 20px;
-      padding: 10px 16px;
+      padding: 0.6em 1em;
       font-size: 1em;
-      margin-right: 8px;
-      outline: none;
-      background: #f9f9f9;
     }
 
     #chat-form button {
-      background-color: #5865F2;
+      background: #5865F2;
+      color: white;
       border: none;
       border-radius: 50%;
       width: 40px;
       height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #chat-form button svg {
-      fill: white;
-      width: 20px;
-      height: 20px;
+      font-size: 16px;
+      cursor: pointer;
     }
 
     #chat-form button:disabled {
-      background-color: #ccc;
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    h2 {
+      margin: 0 0 10px;
     }
   </style>
 </head>
-<body onclick="document.activeElement.blur()">
-  <div id="loader">Загрузка Healthie AI...</div>
-  <div id="quiz-container"></div>
-  <div id="chat-container">
-    <div id="messages"></div>
-    <form id="chat-form">
-      <input type="text" id="user-input" placeholder="Сообщение..." disabled />
-      <button type="submit" disabled>
-        <svg viewBox="0 0 24 24"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/></svg>
-      </button>
-    </form>
-  </div>
+<body>
 
-  <script>
-    const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
-    const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
-    let userId = 'test_user';
-    let quizData = {};
+<div id="loader">Загрузка...</div>
+<div id="quiz-container" style="display:none;"></div>
+<div id="chat-container" style="display:none;">
+  <div id="messages"></div>
+  <form id="chat-form">
+    <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required disabled />
+    <button type="submit" disabled>➤</button>
+  </form>
+</div>
 
-    const quizSteps = [
-      { key: 'name', text: 'Как тебя зовут?', type: 'text' },
-      { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
-      { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
-      { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
-    ];
+<script>
+const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
+const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
-    function getBackgroundByStyle(style) {
-      switch(style) {
-        case 'Железный Наставник': return 'bg/iron.jpg';
-        case 'Энерджайзер-Зажигалка': return 'bg/energizer.jpg';
-        case 'Спокойный Мудрец': return 'bg/sage.jpg';
-        case 'АБСОЛЮТНЫЙ ДОМИНАТОР': return 'bg/dominator.jpg';
-        default: return '';
-      }
-    }
+let userId = 'test_user';
+let quizData = {};
 
-    function updateBackground(style) {
-      document.body.style.backgroundImage = `url(${getBackgroundByStyle(style)})`;
-    }
+const quizSteps = [
+  { key: 'name', text: 'Как тебя зовут?', type: 'text' },
+  { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
+  { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
+  { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
+];
 
-    async function fetchUserData() {
-      const res = await fetch(`${SHEETS_API_URL}?user_id=${userId}`);
-      const json = await res.json();
-      return json?.data || null;
-    }
+function getBackgroundByStyle(style) {
+  switch(style) {
+    case 'Железный Наставник': return 'bg/iron.jpg';
+    case 'Энерджайзер-Зажигалка': return 'bg/energizer.jpg';
+    case 'Спокойный Мудрец': return 'bg/sage.jpg';
+    case 'АБСОЛЮТНЫЙ ДОМИНАТОР': return 'bg/dominator.jpg';
+    default: return '';
+  }
+}
 
-    async function saveQuizData(data) {
-      const res = await fetch(SHEETS_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ user_id: userId, ...data }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      return await res.json();
-    }
+function setBackgroundImage(style) {
+  const url = getBackgroundByStyle(style);
+  if (url) {
+    document.body.style.setProperty('--bg-url', `url(${url})`);
+    document.body.style.backgroundImage = `url(${url})`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+  }
+  document.body.style.setProperty('--style', style);
+  document.body.querySelector('body::before');
+  document.body.style.setProperty('--image', `url(${url})`);
+  document.body.style.setProperty('--overlay', 'rgba(255,255,255,0.3)');
+  document.body.style.setProperty('--blur', '10px');
+  document.body.style.setProperty('--bg-opacity', '0.5');
+  document.querySelector('body::before');
+  document.body.style.setProperty('--transition', 'background-image 0.4s ease-in-out');
+  document.body.style.setProperty('--background-repeat', 'no-repeat');
+}
 
-    async function sendMessageToAI(userMessage) {
-      const profileText = `Пользователь: ${quizData.name}, бегает ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}`;
-      const history = (quizData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
-      let prompt = `${profileText}\n\nИстория диалога:\n`;
-      history.forEach(m => {
-        prompt += (m.role === 'user' ? 'Пользователь: ' : 'AI: ') + m.text + '\n';
-      });
-      prompt += 'Ответь последовательно и мотивирующе.';
+async function fetchUserData() {
+  const res = await fetch(`${SHEETS_API_URL}?user_id=${userId}`);
+  const json = await res.json();
+  return json?.data || null;
+}
 
-      const res = await fetch(GEMINI_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ prompt }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const json = await res.json();
-      return json?.response || 'Ответ от AI отсутствует';
-    }
+async function saveQuizData(data) {
+  const res = await fetch(SHEETS_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId, ...data }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return await res.json();
+}
 
-    function showStep(i) {
-      const container = document.getElementById('quiz-container');
-      const step = quizSteps[i];
-      container.style.display = 'block';
-      container.innerHTML = `<h3>${step.text}</h3>`;
-      const inputHtml = step.type === 'text'
-        ? `<input id="input" required />`
-        : `<select id="input">${step.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
-      container.innerHTML += inputHtml + `<button id="next">Далее</button>`;
+async function sendMessageToAI(userMessage) {
+  const profileText = `Пользователь: ${quizData.name}, бегает ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}`;
+  const history = (quizData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
+  let prompt = `${profileText}\n\nИстория диалога:\n`;
+  history.forEach(m => {
+    prompt += (m.role === 'user' ? 'Пользователь: ' : 'AI: ') + m.text + '\n';
+  });
+  prompt += 'Ответь последовательно и мотивирующе.';
 
-      document.getElementById('next').onclick = () => {
-        const val = document.getElementById('input').value.trim();
-        if (!val) return;
-        quizData[step.key] = (step.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР') ? 'нет' : val;
-        if (i + 1 < quizSteps.length) showStep(i + 1);
-        else finishQuiz();
-      };
-    }
+  const res = await fetch(GEMINI_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const json = await res.json();
+  return json?.response || 'Ответ от AI отсутствует';
+}
 
-    async function finishQuiz() {
-      document.getElementById('quiz-container').style.display = 'none';
-      document.getElementById('loader').style.display = 'flex';
-      quizData.last_messages = [];
-      quizData.last_greet_ts = new Date().toISOString();
-      await saveQuizData(quizData);
-      await startChat(false);
-    }
+function showStep(i) {
+  const quizContainer = document.getElementById('quiz-container');
+  const step = quizSteps[i];
+  quizContainer.innerHTML = `<h3>${step.text}</h3>`;
+  const inputHtml = step.type === 'text'
+    ? `<input id="input" required />`
+    : `<select id="input">${step.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+  quizContainer.innerHTML += inputHtml + `<button id="next">Далее</button>`;
+  document.getElementById('next').onclick = () => {
+    const val = document.getElementById('input').value.trim();
+    if (!val) return;
+    quizData[step.key] = (step.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР') ? 'нет' : val;
+    if (i + 1 < quizSteps.length) showStep(i + 1);
+    else finishQuiz();
+  };
+}
 
-    async function startChat(skipGreeting = false) {
-      const messagesDiv = document.getElementById('messages');
-      const form = document.getElementById('chat-form');
-      const input = document.getElementById('user-input');
-      const button = form.querySelector('button');
+async function finishQuiz() {
+  document.getElementById('quiz-container').style.display = 'none';
+  document.getElementById('loader').style.display = 'block';
+  quizData.last_messages = [];
+  quizData.last_greet_ts = new Date().toISOString();
+  await saveQuizData(quizData);
+  await startChat(false);
+  document.getElementById('loader').style.display = 'none';
+}
 
-      const userData = await fetchUserData();
-      if (!userData || !userData.name || !userData.running_frequency) {
-        document.getElementById('loader').style.display = 'none';
-        return showStep(0);
-      }
+async function startChat(skipGreeting = false) {
+  const messagesDiv = document.getElementById('messages');
+  const chatForm = document.getElementById('chat-form');
+  const input = document.getElementById('user-input');
+  const button = chatForm.querySelector('button');
 
-      quizData = userData;
-      updateBackground(quizData.coaching_style);
+  const userData = await fetchUserData();
 
-      const history = quizData.last_messages || [];
-      document.getElementById('chat-container').style.display = 'block';
-      document.getElementById('loader').style.display = 'none';
-      messagesDiv.innerHTML = '';
-      input.disabled = false;
-      input.focus();
-      button.disabled = true;
+  if (!userData || !userData.name || !userData.running_frequency) {
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('quiz-container').style.display = 'block';
+    return showStep(0);
+  }
 
-      input.addEventListener('input', () => {
-        button.disabled = input.value.trim() === '';
-      });
+  quizData = userData;
+  setBackgroundImage(quizData.coaching_style);
 
-      for (const msg of history) {
-        const cls = msg.role === 'user' ? 'user' : 'ai';
-        messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.text}</div>`;
-      }
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  const history = quizData.last_messages || [];
 
-      if (!skipGreeting && history.length === 0) {
-        const typing = document.createElement('div');
-        typing.className = 'msg ai';
-        typing.textContent = 'Healthie AI печатает...';
-        messagesDiv.appendChild(typing);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  document.getElementById('chat-container').style.display = 'block';
+  document.getElementById('loader').style.display = 'none';
+  messagesDiv.innerHTML = '';
+  input.disabled = false;
+  button.disabled = false;
 
-        const reply = await sendMessageToAI('Привет! Пользователь прошёл квиз, начни беседу.');
+  for (const msg of history) {
+    const cls = msg.role === 'user' ? 'user' : 'ai';
+    messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.text}</div>`;
+  }
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-        typing.remove();
-        messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  if (!skipGreeting && history.length === 0) {
+    const typing = document.createElement('div');
+    typing.id = 'typing-indicator';
+    typing.textContent = 'Healthie AI печатает';
+    typing.className = 'msg ai';
+    messagesDiv.appendChild(typing);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-        quizData.last_messages = [{ role: 'ai', text: reply }];
-        await saveQuizData(quizData);
-      }
+    const reply = await sendMessageToAI('Привет! Пользователь прошёл квиз, начни беседу.');
 
-      form.onsubmit = async (e) => {
-        e.preventDefault();
-        const text = input.value.trim();
-        if (!text) return;
+    typing.remove();
+    messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-        messagesDiv.innerHTML += `<div class="msg user">${text}</div>`;
-        input.value = '';
-        button.disabled = true;
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    const updated = [{ role: 'ai', text: reply }];
+    quizData.last_messages = updated;
+    await saveQuizData(quizData);
+  }
 
-        const typing = document.createElement('div');
-        typing.className = 'msg ai';
-        typing.textContent = 'Healthie AI печатает...';
-        messagesDiv.appendChild(typing);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  chatForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
 
-        const reply = await sendMessageToAI(text);
-        typing.remove();
-        messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    messagesDiv.innerHTML += `<div class="msg user">${text}</div>`;
+    input.value = '';
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-        const updated = [...(quizData.last_messages || []), { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
-        quizData.last_messages = updated;
-        await saveQuizData(quizData);
-      };
-    }
+    const typing = document.createElement('div');
+    typing.id = 'typing-indicator';
+    typing.textContent = 'Healthie AI печатает';
+    typing.className = 'msg ai';
+    messagesDiv.appendChild(typing);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      if (window.Telegram && Telegram.WebApp?.initDataUnsafe?.user?.id) {
-        Telegram.WebApp.ready();
-        userId = Telegram.WebApp.initDataUnsafe.user.id.toString();
-      }
-      await startChat(true);
-    });
-  </script>
+    const reply = await sendMessageToAI(text);
+    typing.remove();
+    messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    const updated = [...(quizData.last_messages || []), { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
+    quizData.last_messages = updated;
+    await saveQuizData(quizData);
+  };
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (window.Telegram && Telegram.WebApp?.initDataUnsafe?.user?.id) {
+    Telegram.WebApp.ready();
+    userId = Telegram.WebApp.initDataUnsafe.user.id.toString();
+  }
+  document.getElementById('loader').style.display = 'block';
+  await startChat(true);
+});
+</script>
 </body>
 </html>
