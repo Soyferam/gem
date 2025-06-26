@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Healthie AI</title>
+  <title>Duco AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     html, body {
@@ -86,7 +86,7 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      align-items: flex-end; /* Все сообщения справа */
+      align-items: flex-end;
       gap: 8px;
       padding-bottom: 10px;
     }
@@ -94,19 +94,19 @@
     .msg {
       padding: 10px 16px;
       border-radius: 20px;
-      max-width: 45%; /* Сообщения не заходят на левую половину */
+      max-width: 45%;
       word-wrap: break-word;
-      font-size: 1em; /* Размер текста */
+      font-size: 1em;
     }
 
     .user {
-      background: rgba(240, 240, 240, 0.9); /* Пользователь — светлый */
+      background: rgba(240, 240, 240, 0.9);
       align-self: flex-end;
     }
 
     .ai {
-      background: rgba(208, 240, 255, 0.9); /* AI — голубой */
-      align-self: flex-end; /* Тоже справа */
+      background: rgba(208, 240, 255, 0.9);
+      align-self: flex-end;
     }
 
     #chat-form {
@@ -139,7 +139,7 @@
   </style>
 </head>
 <body>
-<div id="loader">Загрузка Healthie AI...</div>
+<div id="loader">Загрузка Duco AI...</div>
 <div id="quiz-container" style="display:none;"></div>
 <div id="chat-container" style="display:none;">
   <div id="messages"></div>
@@ -157,7 +157,7 @@ let userId = 'test_user';
 let quizData = {};
 
 const quizSteps = [
-  { key: 'name', text: 'Как тебя зовут?', type: 'text' },
+  { key: 'name', text: 'Привет! Давай знакомиться 😊 Как я могу к тебе обращаться?', type: 'text' },
   { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
   { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
   { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
@@ -200,10 +200,9 @@ async function sendMessageToAI(userMessage, isFirst = false) {
   history.forEach(m => {
     prompt += (m.role === 'user' ? 'Пользователь: ' : 'AI: ') + m.text + '\n';
   });
-  
+
   if (isFirst) {
-    // Для первого сообщения — коротко, от мужского имени
-    prompt += 'Ответь кратко, понятно и с заботой. Не больше 2-3 предложений. Напиши от мужского имени.';
+    prompt += `Ответь от мужского имени. Поздравь что он вместе с Duco AI. Задай полезные и воодушевляющие вопросы: когда планируешь начать бегать? где хочешь бегать (улица, стадион)? какие у тебя цели — вес, форма, дисциплина? Пиши дружелюбно, коротко (2-3 предложения).`;
   } else {
     prompt += 'Ответь кратко, понятно и с заботой. Не больше 4-5 предложений.';
   }
@@ -214,7 +213,7 @@ async function sendMessageToAI(userMessage, isFirst = false) {
     headers: { 'Content-Type': 'application/json' }
   });
   const json = await res.json();
-  return json?.response || 'Ответ от AI отсутствует';
+  return json?.response || 'Ответ от Duco AI отсутствует';
 }
 
 function showStep(i) {
@@ -287,7 +286,7 @@ async function startChat(skipGreeting = false, localQuizData = null) {
   if (!skipGreeting && history.length === 0) {
     const typing = document.createElement('div');
     typing.className = 'msg ai';
-    typing.textContent = 'Healthie AI печатает...';
+    typing.textContent = 'Duco AI печатает...';
     messagesDiv.appendChild(typing);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
@@ -313,7 +312,7 @@ async function startChat(skipGreeting = false, localQuizData = null) {
 
     const typing = document.createElement('div');
     typing.className = 'msg ai';
-    typing.textContent = 'Healthie AI печатает...';
+    typing.textContent = 'Duco AI печатает...';
     messagesDiv.appendChild(typing);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
