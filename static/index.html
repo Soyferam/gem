@@ -20,20 +20,9 @@
     .ai { background: #f0f0f0; align-self: flex-start; }
     #loader { text-align: center; padding: 1em; font-style: italic; }
     #typing-indicator {
-      font-style: italic; color: #888;
-      padding: 0.5em 1em; margin: 0.5em 0; max-width: 80%;
-      border-radius: 10px; background: #f0f0f0;
-      align-self: flex-start; user-select: none;
-    }
-    #typing-indicator::after {
-      content: ''; display: inline-block;
-      width: 1em; animation: dots 1s steps(3, end) infinite;
-    }
-    @keyframes dots {
-      0%, 20% { content: ''; }
-      40% { content: '.'; }
-      60% { content: '..'; }
-      80%, 100% { content: '...'; }
+      font-style: italic; color: #888; padding: 0.5em 1em; margin: 0.5em 0;
+      max-width: 80%; border-radius: 10px; background: #f0f0f0; align-self: flex-start;
+      user-select: none;
     }
   </style>
 </head>
@@ -53,40 +42,30 @@
 <script>
 const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
 const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
-
 let userId = 'test_user';
-const getUserId = () => userId;
-
 const quizSteps = [
   { key: 'name', text: 'Как тебя зовут?', type: 'text' },
   { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
   { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
   { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
 ];
-
 let quizData = {};
 
+const getUserId = () => userId;
+
 async function fetchUserData() {
-  try {
-    const res = await fetch(`${SHEETS_API_URL}?user_id=${getUserId()}`);
-    const json = await res.json();
-    return json?.data || null;
-  } catch (e) {
-    return null;
-  }
+  const res = await fetch(`${SHEETS_API_URL}?user_id=${getUserId()}`);
+  const json = await res.json();
+  return json?.data || null;
 }
 
 async function saveQuizData(data) {
-  try {
-    const res = await fetch(SHEETS_API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ user_id: getUserId(), ...data }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-    return await res.json();
-  } catch (e) {
-    return null;
-  }
+  const res = await fetch(SHEETS_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: getUserId(), ...data }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return await res.json();
 }
 
 async function sendMessageToAI(userMessage) {
@@ -98,17 +77,13 @@ async function sendMessageToAI(userMessage) {
   });
   prompt += 'Ответь последовательно и мотивирующе.';
 
-  try {
-    const res = await fetch(GEMINI_API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ prompt }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const json = await res.json();
-    return json?.response || 'Ответ от AI отсутствует';
-  } catch (e) {
-    return 'Ошибка получения ответа от AI';
-  }
+  const res = await fetch(GEMINI_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const json = await res.json();
+  return json?.response || 'Ответ от AI отсутствует';
 }
 
 function showStep(i) {
@@ -132,9 +107,8 @@ async function finishQuiz() {
   document.getElementById('quiz-container').style.display = 'none';
   document.getElementById('loader').style.display = 'block';
   quizData.last_messages = [];
-  quizData.last_greet_ts = new Date().toISOString();
   await saveQuizData(quizData);
-  await startChat(false);
+  await startChat(true);
   document.getElementById('loader').style.display = 'none';
 }
 
@@ -158,16 +132,14 @@ async function startChat(withGreeting = false) {
 
   chatContainer.style.display = 'block';
   messagesDiv.innerHTML = '';
-
   const history = await loadChatHistory();
-
   for (const msg of history) {
     const cls = msg.role === 'user' ? 'user' : 'ai';
     messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.text}</div>`;
   }
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-  if (history.length === 0 && withGreeting === false) {
+  if (withGreeting && history.length === 0) {
     const typingDiv = document.createElement('div');
     typingDiv.id = 'typing-indicator';
     typingDiv.textContent = 'Healthie AI печатает';
@@ -176,13 +148,10 @@ async function startChat(withGreeting = false) {
 
     const greetPrompt = `Ты — AI-тренер по бегу. ${quizData.name} только что прошёл квиз. Начни разговор.`;
     const reply = await sendMessageToAI(greetPrompt);
-
     typingDiv.remove();
     messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-    const updatedMessages = [{ role: 'ai', text: reply }];
-    await updateLastMessages(updatedMessages);
+    await updateLastMessages([{ role: 'ai', text: reply }]);
   }
 
   form.onsubmit = async (e) => {
@@ -202,11 +171,10 @@ async function startChat(withGreeting = false) {
 
     const reply = await sendMessageToAI(text);
     typingDiv.remove();
-
     messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    const updatedMessages = [...quizData.last_messages, { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
+    const updatedMessages = [...(quizData.last_messages || []), { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
     await updateLastMessages(updatedMessages);
   };
 }
@@ -215,15 +183,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.Telegram && Telegram.WebApp) {
     Telegram.WebApp.ready();
     const tgUser = Telegram.WebApp.initDataUnsafe?.user;
-    if (tgUser?.id) {
-      userId = tgUser.id.toString();
-    }
+    if (tgUser?.id) userId = tgUser.id.toString();
   }
-
   const existingData = await fetchUserData();
   if (existingData && existingData.name && existingData.running_frequency) {
     quizData = existingData;
-    await startChat(true);
+    await startChat(false);
   } else {
     document.getElementById('quiz-container').style.display = 'block';
     showStep(0);
