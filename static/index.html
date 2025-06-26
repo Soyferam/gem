@@ -189,6 +189,7 @@ function typeText(el, text, speed = 20) {
   let i = 0;
   const interval = setInterval(() => {
     el.textContent += text[i];
+    el.parentElement.scrollTop = el.parentElement.scrollHeight; // scroll container down on each char
     i++;
     if (i >= text.length) clearInterval(interval);
   }, speed);
