@@ -193,7 +193,7 @@ async function saveQuizData(data) {
   return await res.json();
 }
 
-async function sendMessageToAI(userMessage) {
+async function sendMessageToAI(userMessage, isFirst = false) {
   const profileText = `Пользователь: ${quizData.name}, бегает ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}`;
   const history = (quizData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
   let prompt = `${profileText}\n\nИстория диалога:\n`;
@@ -201,11 +201,12 @@ async function sendMessageToAI(userMessage) {
     prompt += (m.role === 'user' ? 'Пользователь: ' : 'AI: ') + m.text + '\n';
   });
   
-  // Если это первое сообщение AI, просим 2-3 предложения, иначе — 4-5
-  const isFirstGreeting = history.length === 1 && history[0].role === 'user';
-  prompt += isFirstGreeting
-    ? 'Ответь кратко, понятно и с заботой. Не больше 2-3 предложений.'
-    : 'Ответь кратко, понятно и с заботой. Не больше 4-5 предложений.';
+  if (isFirst) {
+    // Для первого сообщения — коротко, от мужского имени
+    prompt += 'Ответь кратко, понятно и с заботой. Не больше 2-3 предложений. Напиши от мужского имени.';
+  } else {
+    prompt += 'Ответь кратко, понятно и с заботой. Не больше 4-5 предложений.';
+  }
 
   const res = await fetch(GEMINI_API_URL, {
     method: 'POST',
@@ -290,7 +291,7 @@ async function startChat(skipGreeting = false, localQuizData = null) {
     messagesDiv.appendChild(typing);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    const reply = await sendMessageToAI('Привет! Пользователь прошёл квиз, начни беседу.');
+    const reply = await sendMessageToAI('Привет! Пользователь прошёл квиз, начни беседу.', true);
 
     typing.remove();
     messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
