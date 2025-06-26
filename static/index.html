@@ -2,17 +2,20 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Healthie AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="styles.css">
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell;
-      background-color: #f5f5f5;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      overflow: hidden;
     }
-
     #loader {
       display: flex;
       justify-content: center;
@@ -20,34 +23,35 @@
       height: 100vh;
       font-size: 1.2em;
       color: #888;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(5px);
     }
-
     #quiz-container, #chat-container {
-      display: none;
-      max-width: 100%;
+      position: relative;
+      max-width: 420px;
+      margin: auto;
       height: 100vh;
-      box-sizing: border-box;
       padding: 20px 16px 80px;
-      background: white;
+      box-sizing: border-box;
+      background-color: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
     }
-
     #quiz-container h3 {
       text-align: center;
       font-size: 1.2em;
       margin-bottom: 20px;
+      color: white;
     }
-
     #quiz-container input,
     #quiz-container select {
       width: 100%;
       padding: 12px;
       margin-bottom: 20px;
       border-radius: 16px;
-      border: 1px solid #ccc;
+      border: none;
       font-size: 1em;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
-
     #quiz-container button {
       width: 100%;
       padding: 12px;
@@ -58,19 +62,13 @@
       font-size: 1em;
       transition: background 0.3s ease;
     }
-
-    #quiz-container button:hover {
-      background-color: #4752c4;
-    }
-
     #messages {
       display: flex;
       flex-direction: column;
       overflow-y: auto;
       max-height: calc(100vh - 120px);
-      padding-bottom: 10px;
+      padding: 8px;
     }
-
     .msg {
       max-width: 80%;
       padding: 10px 14px;
@@ -78,37 +76,34 @@
       border-radius: 18px;
       font-size: 0.95em;
       line-height: 1.4;
-      white-space: pre-wrap;
       word-wrap: break-word;
+      backdrop-filter: blur(4px);
+      background-color: rgba(255, 255, 255, 0.6);
     }
-
     .user {
-      background-color: #d0f0ff;
       align-self: flex-end;
-      border-bottom-right-radius: 2px;
+      background-color: rgba(208, 240, 255, 0.7);
     }
-
     .ai {
-      background-color: #eee;
       align-self: flex-start;
-      border-bottom-left-radius: 2px;
+      background-color: rgba(230, 230, 230, 0.7);
     }
-
     #chat-form {
       display: flex;
       align-items: center;
       position: fixed;
       bottom: 0;
-      left: 0;
-      right: 0;
-      background: white;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255,255,255,0.9);
       padding: 8px 12px;
-      box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+      box-sizing: border-box;
     }
-
     #user-input {
       flex-grow: 1;
-      border: 1px solid #ccc;
+      border: none;
       border-radius: 20px;
       padding: 10px 16px;
       font-size: 1em;
@@ -116,7 +111,6 @@
       outline: none;
       background: #f9f9f9;
     }
-
     #chat-form button {
       background-color: #5865F2;
       border: none;
@@ -126,23 +120,18 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
-      transition: background 0.3s ease;
     }
-
-    #chat-form button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-
     #chat-form button svg {
       fill: white;
       width: 20px;
       height: 20px;
     }
+    #chat-form button:disabled {
+      background-color: #ccc;
+    }
   </style>
 </head>
-<body>
+<body onclick="document.activeElement.blur()">
   <div id="loader">Загрузка Healthie AI...</div>
   <div id="quiz-container"></div>
   <div id="chat-container">
@@ -154,11 +143,9 @@
       </button>
     </form>
   </div>
-
   <script>
     const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
     const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
-
     let userId = 'test_user';
     let quizData = {};
 
@@ -168,6 +155,20 @@
       { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
       { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
     ];
+
+    function getBackgroundByStyle(style) {
+      switch(style) {
+        case 'Железный Наставник': return 'bg/iron.jpg';
+        case 'Энерджайзер-Зажигалка': return 'bg/energizer.jpg';
+        case 'Спокойный Мудрец': return 'bg/sage.jpg';
+        case 'АБСОЛЮТНЫЙ ДОМИНАТОР': return 'bg/dominator.jpg';
+        default: return '';
+      }
+    }
+
+    function updateBackground(style) {
+      document.body.style.backgroundImage = `url(${getBackgroundByStyle(style)})`;
+    }
 
     async function fetchUserData() {
       const res = await fetch(`${SHEETS_API_URL}?user_id=${userId}`);
@@ -243,8 +244,9 @@
       }
 
       quizData = userData;
-      const history = quizData.last_messages || [];
+      updateBackground(quizData.coaching_style);
 
+      const history = quizData.last_messages || [];
       document.getElementById('chat-container').style.display = 'block';
       document.getElementById('loader').style.display = 'none';
       messagesDiv.innerHTML = '';
@@ -296,7 +298,6 @@
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
         const reply = await sendMessageToAI(text);
-
         typing.remove();
         messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
