@@ -59,8 +59,8 @@
   const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
   let userId = 'test_user';
-
   const getUserId = () => userId;
+  let quizData = {};
 
   const quizSteps = [
     { key: 'name', text: 'Как тебя зовут?', type: 'text' },
@@ -69,34 +69,22 @@
     { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
   ];
 
-  let quizData = {};
-
   async function fetchUserData() {
     try {
       const res = await fetch(`${SHEETS_API_URL}?user_id=${getUserId()}`);
       const json = await res.json();
-      console.log('fetchUserData response:', json);
       return json?.data || null;
-    } catch (e) {
-      console.error('fetchUserData error:', e);
+    } catch {
       return null;
     }
   }
 
   async function saveQuizData(data) {
-    try {
-      const res = await fetch(SHEETS_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ user_id: getUserId(), ...data }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const json = await res.json();
-      console.log('saveQuizData response:', json);
-      return json;
-    } catch (e) {
-      console.error('saveQuizData error:', e);
-      return null;
-    }
+    await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ user_id: getUserId(), ...data }),
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   async function sendMessageToAI(userMessage) {
@@ -108,33 +96,73 @@
     });
     prompt += 'Ответь последовательно и мотивирующе.';
 
-    try {
-      const res = await fetch(GEMINI_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ prompt }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const json = await res.json();
-      console.log('sendMessageToAI response:', json);
-      return json?.response || 'Ответ от AI отсутствует';
-    } catch(e) {
-      console.error('sendMessageToAI error:', e);
-      return 'Ошибка получения ответа от AI';
+    const res = await fetch(GEMINI_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const json = await res.json();
+    return json?.response || 'Ответ от AI отсутствует';
+  }
+
+  async function updateLastMessages(messages) {
+    quizData.last_messages = messages;
+    await saveQuizData(quizData);
+  }
+
+  async function startChat(sendGreeting = false) {
+    const container = document.getElementById('chat-container');
+    const messagesDiv = document.getElementById('messages');
+    const input = document.getElementById('user-input');
+    const form = document.getElementById('chat-form');
+
+    container.style.display = 'block';
+    messagesDiv.innerHTML = '';
+
+    (quizData.last_messages || []).forEach(msg => {
+      const cls = msg.role === 'user' ? 'user' : 'ai';
+      messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.text}</div>`;
+    });
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    if (sendGreeting && (!quizData.last_messages || quizData.last_messages.length === 0)) {
+      const prompt = `Ты — AI-тренер по бегу. ${quizData.name} только что прошёл квиз. Начни разговор.`;
+      const reply = await sendMessageToAI(prompt);
+      messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      await updateLastMessages([{ role: 'ai', text: reply }]);
     }
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      messagesDiv.innerHTML += `<div class="msg user">${text}</div>`;
+      input.value = '';
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      const reply = await sendMessageToAI(text);
+      messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      await updateLastMessages([
+        ...(quizData.last_messages || []),
+        { role: 'user', text },
+        { role: 'ai', text: reply }
+      ].slice(-15));
+    };
   }
 
   function showStep(i) {
-    const quizContainer = document.getElementById('quiz-container');
-    const st = quizSteps[i];
-    quizContainer.innerHTML = `<h3>${st.text}</h3>`;
-    const inputHtml = st.type === 'text'
+    const container = document.getElementById('quiz-container');
+    const step = quizSteps[i];
+    container.innerHTML = `<h3>${step.text}</h3>`;
+    const inputHtml = step.type === 'text'
       ? `<input id="input" required />`
-      : `<select id="input">${st.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
-    quizContainer.innerHTML += inputHtml + `<button id="next">Далее</button>`;
+      : `<select id="input">${step.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+    container.innerHTML += inputHtml + `<button id="next">Далее</button>`;
     document.getElementById('next').onclick = () => {
       const val = document.getElementById('input').value.trim();
       if (!val) return;
-      quizData[st.key] = (st.type === 'select' && st.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР') ? 'нет' : val;
+      quizData[step.key] = (step.type === 'select' && step.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР') ? 'нет' : val;
       if (i + 1 < quizSteps.length) showStep(i + 1);
       else finishQuiz();
     };
@@ -144,122 +172,20 @@
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('loader').style.display = 'block';
     await saveQuizData(quizData);
-    await startChat(false);
+    await startChat(true);
     document.getElementById('loader').style.display = 'none';
-  }
-
-  async function loadChatHistory() {
-    const userData = await fetchUserData();
-    if (!userData) return [];
-    if (userData.last_messages && Array.isArray(userData.last_messages)) {
-      quizData = userData;
-      return userData.last_messages;
-    }
-    return [];
-  }
-
-  async function updateLastMessages(messages) {
-    await saveQuizData({ ...quizData, last_messages: messages });
-    quizData.last_messages = messages;
-  }
-
-  async function startChat(withGreeting = false) {
-    const chatContainer = document.getElementById('chat-container');
-    const messagesDiv = document.getElementById('messages');
-    const form = document.getElementById('chat-form');
-    const input = document.getElementById('user-input');
-
-    chatContainer.style.display = 'block';
-    messagesDiv.innerHTML = '';
-
-    const history = await loadChatHistory();
-    quizData.last_messages = history;
-
-    for (const msg of history) {
-      const cls = msg.role === 'user' ? 'user' : 'ai';
-      messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.text}</div>`;
-    }
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-    if (withGreeting) {
-      const now = Date.now();
-      const lastGreeted = quizData.last_greet_ts ? new Date(quizData.last_greet_ts).getTime() : 0;
-      const isOnlyAI = history.every(m => m.role === 'ai');
-      const shouldGreet = (!quizData.last_greet_ts || now - lastGreeted > 6 * 60 * 60 * 1000) && !isOnlyAI;
-
-      if (shouldGreet) {
-        const typingDiv = document.createElement('div');
-        typingDiv.id = 'typing-indicator';
-        typingDiv.textContent = 'Healthie AI печатает';
-        messagesDiv.appendChild(typingDiv);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-        const greetPrompt = history.length === 0
-          ? `Ты — AI-тренер по бегу. ${quizData.name} только что прошёл квиз. Начни разговор.`
-          : `Ты — AI-тренер по бегу. ${quizData.name} давно не заходил. Продолжи беседу с заботой.`;
-
-        const reply = await sendMessageToAI(greetPrompt);
-
-        typingDiv.remove();
-        messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-        const updatedMessages = [...quizData.last_messages, { role: 'ai', text: reply }].slice(-15);
-        quizData.last_messages = updatedMessages;
-        quizData.last_greet_ts = new Date().toISOString();
-        await saveQuizData(quizData);
-      }
-    }
-
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      const text = input.value.trim();
-      if (!text) return;
-
-      messagesDiv.innerHTML += `<div class="msg user">${text}</div>`;
-      input.value = '';
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      const typingDiv = document.createElement('div');
-      typingDiv.id = 'typing-indicator';
-      typingDiv.textContent = 'Healthie AI печатает';
-      messagesDiv.appendChild(typingDiv);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      const reply = await sendMessageToAI(text);
-
-      typingDiv.remove();
-      messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      const updatedMessages = [...quizData.last_messages, { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
-      await updateLastMessages(updatedMessages);
-    };
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
     if (window.Telegram && Telegram.WebApp) {
       Telegram.WebApp.ready();
       const tgUser = Telegram.WebApp.initDataUnsafe?.user;
-      if (tgUser?.id) {
-        userId = tgUser.id.toString();
-        console.log('✅ Telegram user ID:', userId);
-      } else {
-        console.warn('⚠️ Нет user.id в initDataUnsafe');
-      }
-    } else {
-      console.warn('⚠️ Telegram WebApp не доступен — fallback на test_user');
+      if (tgUser?.id) userId = tgUser.id.toString();
     }
-
-    const existingData = await fetchUserData();
-
-    if (
-      existingData &&
-      existingData.name && existingData.name.trim() !== '' &&
-      existingData.running_frequency && existingData.running_frequency.trim() !== ''
-    ) {
-      quizData = existingData;
-      await startChat(true);
+    const existing = await fetchUserData();
+    if (existing && existing.name && existing.running_frequency) {
+      quizData = existing;
+      await startChat(false);
     } else {
       document.getElementById('quiz-container').style.display = 'block';
       showStep(0);
