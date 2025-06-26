@@ -18,20 +18,28 @@
     .msg { padding: 0.5em; margin: 0.5em 0; border-radius: 10px; max-width: 80%; word-wrap: break-word; }
     .user { background: #d0f0ff; align-self: flex-end; }
     .ai { background: #f0f0f0; align-self: flex-start; }
-    #loader { text-align: center; padding: 1em; font-style: italic; }
+    #loader {
+      display: flex; justify-content: center; align-items: center;
+      padding: 2em; font-style: italic; font-size: 1.2em;
+    }
+    #chat-form input[disabled] {
+      background: #eee;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
+
+<div id="loader">Загрузка...</div>
 <div id="quiz-container" style="display:none;"></div>
 <div id="chat-container" style="display:none;">
   <h2>Healthie AI</h2>
   <div id="messages"></div>
   <form id="chat-form">
-    <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required />
-    <button type="submit">Отправить</button>
+    <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required disabled />
+    <button type="submit" disabled>Отправить</button>
   </form>
 </div>
-<div id="loader" style="display:none;">Загрузка...</div>
 
 <script>
 const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
@@ -47,12 +55,8 @@ const quizSteps = [
   { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
 ];
 
-function getUserId() {
-  return userId;
-}
-
 async function fetchUserData() {
-  const res = await fetch(`${SHEETS_API_URL}?user_id=${getUserId()}`);
+  const res = await fetch(`${SHEETS_API_URL}?user_id=${userId}`);
   const json = await res.json();
   return json?.data || null;
 }
@@ -60,7 +64,7 @@ async function fetchUserData() {
 async function saveQuizData(data) {
   const res = await fetch(SHEETS_API_URL, {
     method: 'POST',
-    body: JSON.stringify({ user_id: getUserId(), ...data }),
+    body: JSON.stringify({ user_id: userId, ...data }),
     headers: { 'Content-Type': 'application/json' }
   });
   return await res.json();
@@ -112,23 +116,29 @@ async function finishQuiz() {
 }
 
 async function startChat(skipGreeting = false) {
-  const chatContainer = document.getElementById('chat-container');
   const messagesDiv = document.getElementById('messages');
-  const form = document.getElementById('chat-form');
+  const chatForm = document.getElementById('chat-form');
   const input = document.getElementById('user-input');
-
-  chatContainer.style.display = 'block';
-  messagesDiv.innerHTML = '';
+  const button = chatForm.querySelector('button');
 
   const userData = await fetchUserData();
+
+  // если нет данных — показываем квиз
   if (!userData || !userData.name || !userData.running_frequency) {
+    document.getElementById('loader').style.display = 'none';
     document.getElementById('quiz-container').style.display = 'block';
-    showStep(0);
-    return;
+    return showStep(0);
   }
 
   quizData = userData;
   const history = quizData.last_messages || [];
+
+  // показываем чат
+  document.getElementById('chat-container').style.display = 'block';
+  document.getElementById('loader').style.display = 'none';
+  messagesDiv.innerHTML = '';
+  input.disabled = false;
+  button.disabled = false;
 
   for (const msg of history) {
     const cls = msg.role === 'user' ? 'user' : 'ai';
@@ -154,7 +164,7 @@ async function startChat(skipGreeting = false) {
     await saveQuizData(quizData);
   }
 
-  form.onsubmit = async (e) => {
+  chatForm.onsubmit = async (e) => {
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
@@ -185,6 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     Telegram.WebApp.ready();
     userId = Telegram.WebApp.initDataUnsafe.user.id.toString();
   }
+  document.getElementById('loader').style.display = 'block';
   await startChat(true);
 });
 </script>
