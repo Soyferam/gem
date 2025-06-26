@@ -50,6 +50,7 @@
       justify-content: center;
       align-items: center;
       text-align: center;
+      transition: all 0.3s ease-in-out;
     }
 
     #quiz-container h3 {
@@ -69,6 +70,7 @@
       margin-bottom: 1em;
       background: rgba(255, 255, 255, 0.9);
       color: #000;
+      transition: all 0.3s ease;
     }
 
     #quiz-container button {
@@ -79,6 +81,7 @@
       background-color: #5865F2;
       color: white;
       width: 100%;
+      transition: all 0.3s ease;
     }
 
     #messages {
@@ -121,6 +124,7 @@
       border: none;
       font-size: 1em;
       background: rgba(255,255,255,0.9);
+      transition: all 0.3s ease;
     }
 
     #chat-form button {
@@ -131,6 +135,7 @@
       width: 44px;
       height: 44px;
       font-size: 1.2em;
+      transition: all 0.3s ease;
     }
 
     #chat-form button:disabled {
@@ -176,6 +181,15 @@ function getBackgroundByStyle(style) {
 function setBackgroundImage(style) {
   const url = getBackgroundByStyle(style);
   document.body.style.setProperty('--bg-url', `url(${url})`);
+}
+
+function typeText(el, text, speed = 20) {
+  let i = 0;
+  const interval = setInterval(() => {
+    el.textContent += text[i];
+    i++;
+    if (i >= text.length) clearInterval(interval);
+  }, speed);
 }
 
 async function fetchUserData() {
@@ -253,9 +267,7 @@ async function startChat(skipGreeting = false, localQuizData = null) {
   const button = chatForm.querySelector('button');
 
   let userData = localQuizData;
-  if (!userData) {
-    userData = await fetchUserData();
-  }
+  if (!userData) userData = await fetchUserData();
 
   if (!userData || !userData.name || !userData.running_frequency) {
     document.getElementById('loader').style.display = 'none';
@@ -286,15 +298,11 @@ async function startChat(skipGreeting = false, localQuizData = null) {
   if (!skipGreeting && history.length === 0) {
     const typing = document.createElement('div');
     typing.className = 'msg ai';
-    typing.textContent = 'Duco AI печатает...';
     messagesDiv.appendChild(typing);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     const reply = await sendMessageToAI('Привет! Пользователь прошёл квиз, начни беседу.', true);
-
-    typing.remove();
-    messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    typeText(typing, reply);
 
     quizData.last_messages = [{ role: 'ai', text: reply }];
     await saveQuizData(quizData);
@@ -312,14 +320,11 @@ async function startChat(skipGreeting = false, localQuizData = null) {
 
     const typing = document.createElement('div');
     typing.className = 'msg ai';
-    typing.textContent = 'Duco AI печатает...';
     messagesDiv.appendChild(typing);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     const reply = await sendMessageToAI(text);
-    typing.remove();
-    messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    typeText(typing, reply);
 
     const updated = [...(quizData.last_messages || []), { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
     quizData.last_messages = updated;
