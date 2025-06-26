@@ -242,6 +242,10 @@ async function finishQuiz() {
   quizData.last_messages = [];
   quizData.last_greet_ts = new Date().toISOString();
   await saveQuizData(quizData);
+
+  // Сменить фон сразу после завершения квиза
+  setBackgroundImage(quizData.coaching_style);
+
   await startChat(false);
   document.getElementById('loader').style.display = 'none';
 }
