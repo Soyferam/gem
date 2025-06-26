@@ -18,7 +18,7 @@
       content: '';
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-image: url('bg/default.jpg'); /* заменяется динамически */
+      background-image: url('bg/default.jpg');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -47,16 +47,23 @@
     }
 
     /* Квиз */
-    #quiz-container h3 {
+    #quiz-container {
+      justify-content: center;
+      align-items: center;
       text-align: center;
+    }
+
+    #quiz-container h3 {
       font-size: 1.4em;
       color: #fff;
       margin-bottom: 1em;
+      max-width: 90%;
     }
 
     #quiz-container input,
     #quiz-container select {
       width: 100%;
+      max-width: 100%;
       padding: 14px;
       font-size: 1.1em;
       border-radius: 20px;
@@ -75,6 +82,7 @@
       color: white;
       width: 100%;
       text-align: center;
+      max-width: 100%;
     }
 
     #messages {
@@ -209,7 +217,7 @@ async function sendMessageToAI(userMessage) {
 }
 
 function showStep(i) {
-  setBackgroundImage('default'); // фон квиза
+  setBackgroundImage('default');
   const container = document.getElementById('quiz-container');
   const step = quizSteps[i];
   container.style.display = 'flex';
@@ -247,7 +255,7 @@ async function startChat(skipGreeting = false) {
   const userData = await fetchUserData();
   if (!userData || !userData.name || !userData.running_frequency) {
     document.getElementById('loader').style.display = 'none';
-    document.getElementById('quiz-container').style.display = 'block';
+    document.getElementById('quiz-container').style.display = 'flex';
     return showStep(0);
   }
 
