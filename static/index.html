@@ -46,7 +46,6 @@
       background: transparent;
     }
 
-    /* Квиз */
     #quiz-container {
       justify-content: center;
       align-items: center;
@@ -143,9 +142,7 @@
 </head>
 <body>
 <div id="loader">Загрузка Healthie AI...</div>
-
 <div id="quiz-container" style="display:none;"></div>
-
 <div id="chat-container" style="display:none;">
   <div id="messages"></div>
   <form id="chat-form">
@@ -242,8 +239,7 @@ async function finishQuiz() {
   quizData.last_messages = [];
   quizData.last_greet_ts = new Date().toISOString();
   await saveQuizData(quizData);
-
-  await startChat(false, quizData); // передаём локальные данные
+  await startChat(false, quizData); // передаём актуальные данные
   document.getElementById('loader').style.display = 'none';
 }
 
@@ -267,10 +263,7 @@ async function startChat(skipGreeting = false, localQuizData = null) {
   quizData = userData;
   setBackgroundImage(quizData.coaching_style);
 
-  quizData = userData;
-  setBackgroundImage(quizData.coaching_style);
   const history = quizData.last_messages || [];
-
   document.getElementById('chat-container').style.display = 'flex';
   document.getElementById('loader').style.display = 'none';
   messagesDiv.innerHTML = '';
@@ -300,8 +293,7 @@ async function startChat(skipGreeting = false, localQuizData = null) {
     messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    const updated = [{ role: 'ai', text: reply }];
-    quizData.last_messages = updated;
+    quizData.last_messages = [{ role: 'ai', text: reply }];
     await saveQuizData(quizData);
   }
 
