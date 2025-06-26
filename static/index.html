@@ -9,13 +9,14 @@
     html, body {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell;
       height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell;
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      overflow: hidden;
+      touch-action: manipulation;
     }
+
     #loader {
       display: flex;
       justify-content: center;
@@ -26,8 +27,10 @@
       background: rgba(255,255,255,0.7);
       backdrop-filter: blur(5px);
     }
+
     #quiz-container, #chat-container {
       position: relative;
+      z-index: 2;
       max-width: 420px;
       margin: auto;
       height: 100vh;
@@ -35,13 +38,16 @@
       box-sizing: border-box;
       background-color: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(10px);
+      overflow-y: auto;
     }
+
     #quiz-container h3 {
       text-align: center;
       font-size: 1.2em;
       margin-bottom: 20px;
       color: white;
     }
+
     #quiz-container input,
     #quiz-container select {
       width: 100%;
@@ -52,6 +58,7 @@
       font-size: 1em;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
+
     #quiz-container button {
       width: 100%;
       padding: 12px;
@@ -62,13 +69,15 @@
       font-size: 1em;
       transition: background 0.3s ease;
     }
+
     #messages {
       display: flex;
       flex-direction: column;
       overflow-y: auto;
-      max-height: calc(100vh - 120px);
+      max-height: calc(100vh - 130px);
       padding: 8px;
     }
+
     .msg {
       max-width: 80%;
       padding: 10px 14px;
@@ -82,16 +91,17 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       backdrop-filter: blur(4px);
     }
+
     .user {
       align-self: flex-end;
       background: rgba(208, 240, 255, 0.75);
-      color: #111;
     }
+
     .ai {
       align-self: flex-start;
       background: rgba(230, 230, 230, 0.75);
-      color: #111;
     }
+
     #chat-form {
       display: flex;
       align-items: center;
@@ -104,7 +114,9 @@
       background: rgba(255,255,255,0.9);
       padding: 8px 12px;
       box-sizing: border-box;
+      z-index: 3;
     }
+
     #user-input {
       flex-grow: 1;
       border: none;
@@ -115,6 +127,7 @@
       outline: none;
       background: #f9f9f9;
     }
+
     #chat-form button {
       background-color: #5865F2;
       border: none;
@@ -125,11 +138,13 @@
       align-items: center;
       justify-content: center;
     }
+
     #chat-form button svg {
       fill: white;
       width: 20px;
       height: 20px;
     }
+
     #chat-form button:disabled {
       background-color: #ccc;
     }
@@ -256,6 +271,7 @@
       document.getElementById('loader').style.display = 'none';
       messagesDiv.innerHTML = '';
       input.disabled = false;
+      input.focus();
       button.disabled = true;
 
       input.addEventListener('input', () => {
@@ -281,8 +297,7 @@
         messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-        const updated = [{ role: 'ai', text: reply }];
-        quizData.last_messages = updated;
+        quizData.last_messages = [{ role: 'ai', text: reply }];
         await saveQuizData(quizData);
       }
 
