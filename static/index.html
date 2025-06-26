@@ -19,15 +19,9 @@
     .user { background: #d0f0ff; align-self: flex-end; }
     .ai { background: #f0f0f0; align-self: flex-start; }
     #loader { text-align: center; padding: 1em; font-style: italic; }
-    #typing-indicator {
-      font-style: italic; color: #888; padding: 0.5em 1em; margin: 0.5em 0;
-      max-width: 80%; border-radius: 10px; background: #f0f0f0; align-self: flex-start;
-      user-select: none;
-    }
   </style>
 </head>
 <body>
-
 <div id="quiz-container" style="display:none;"></div>
 <div id="chat-container" style="display:none;">
   <h2>Healthie AI</h2>
@@ -42,16 +36,20 @@
 <script>
 const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
 const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
+
 let userId = 'test_user';
+let quizData = {};
+
 const quizSteps = [
   { key: 'name', text: 'Как тебя зовут?', type: 'text' },
   { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
   { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
   { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
 ];
-let quizData = {};
 
-const getUserId = () => userId;
+function getUserId() {
+  return userId;
+}
 
 async function fetchUserData() {
   const res = await fetch(`${SHEETS_API_URL}?user_id=${getUserId()}`);
@@ -69,11 +67,11 @@ async function saveQuizData(data) {
 }
 
 async function sendMessageToAI(userMessage) {
-  const profileText = `Пользователь: ${quizData.name}, хочет бегать ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}.`;
-  const conversation = (quizData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
-  let prompt = `Ты — AI-тренер по бегу. ${profileText}\n\nИстория диалога:\n`;
-  conversation.forEach(msg => {
-    prompt += (msg.role === 'user' ? 'Пользователь: ' : 'AI: ') + msg.text + '\n';
+  const profileText = `Пользователь: ${quizData.name}, бегает ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}`;
+  const history = (quizData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
+  let prompt = `${profileText}\n\nИстория диалога:\n`;
+  history.forEach(m => {
+    prompt += (m.role === 'user' ? 'Пользователь: ' : 'AI: ') + m.text + '\n';
   });
   prompt += 'Ответь последовательно и мотивирующе.';
 
@@ -88,16 +86,16 @@ async function sendMessageToAI(userMessage) {
 
 function showStep(i) {
   const quizContainer = document.getElementById('quiz-container');
-  const st = quizSteps[i];
-  quizContainer.innerHTML = `<h3>${st.text}</h3>`;
-  const inputHtml = st.type === 'text'
+  const step = quizSteps[i];
+  quizContainer.innerHTML = `<h3>${step.text}</h3>`;
+  const inputHtml = step.type === 'text'
     ? `<input id="input" required />`
-    : `<select id="input">${st.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+    : `<select id="input">${step.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
   quizContainer.innerHTML += inputHtml + `<button id="next">Далее</button>`;
   document.getElementById('next').onclick = () => {
     const val = document.getElementById('input').value.trim();
     if (!val) return;
-    quizData[st.key] = (st.type === 'select' && st.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР') ? 'нет' : val;
+    quizData[step.key] = (step.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР') ? 'нет' : val;
     if (i + 1 < quizSteps.length) showStep(i + 1);
     else finishQuiz();
   };
@@ -107,24 +105,13 @@ async function finishQuiz() {
   document.getElementById('quiz-container').style.display = 'none';
   document.getElementById('loader').style.display = 'block';
   quizData.last_messages = [];
+  quizData.last_greet_ts = new Date().toISOString();
   await saveQuizData(quizData);
-  await startChat(true);
+  await startChat(false);
   document.getElementById('loader').style.display = 'none';
 }
 
-async function loadChatHistory() {
-  const userData = await fetchUserData();
-  if (!userData) return [];
-  quizData = userData;
-  return userData.last_messages || [];
-}
-
-async function updateLastMessages(messages) {
-  quizData.last_messages = messages;
-  await saveQuizData(quizData);
-}
-
-async function startChat(withGreeting = false) {
+async function startChat(skipGreeting = false) {
   const chatContainer = document.getElementById('chat-container');
   const messagesDiv = document.getElementById('messages');
   const form = document.getElementById('chat-form');
@@ -132,26 +119,39 @@ async function startChat(withGreeting = false) {
 
   chatContainer.style.display = 'block';
   messagesDiv.innerHTML = '';
-  const history = await loadChatHistory();
+
+  const userData = await fetchUserData();
+  if (!userData || !userData.name || !userData.running_frequency) {
+    document.getElementById('quiz-container').style.display = 'block';
+    showStep(0);
+    return;
+  }
+
+  quizData = userData;
+  const history = quizData.last_messages || [];
+
   for (const msg of history) {
     const cls = msg.role === 'user' ? 'user' : 'ai';
     messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.text}</div>`;
   }
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-  if (withGreeting && history.length === 0) {
-    const typingDiv = document.createElement('div');
-    typingDiv.id = 'typing-indicator';
-    typingDiv.textContent = 'Healthie AI печатает';
-    messagesDiv.appendChild(typingDiv);
+  if (!skipGreeting && history.length === 0) {
+    const typing = document.createElement('div');
+    typing.id = 'typing-indicator';
+    typing.textContent = 'Healthie AI печатает';
+    messagesDiv.appendChild(typing);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    const greetPrompt = `Ты — AI-тренер по бегу. ${quizData.name} только что прошёл квиз. Начни разговор.`;
-    const reply = await sendMessageToAI(greetPrompt);
-    typingDiv.remove();
+    const reply = await sendMessageToAI('Привет! Пользователь прошёл квиз, начни беседу.');
+
+    typing.remove();
     messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    await updateLastMessages([{ role: 'ai', text: reply }]);
+
+    const updated = [{ role: 'ai', text: reply }];
+    quizData.last_messages = updated;
+    await saveQuizData(quizData);
   }
 
   form.onsubmit = async (e) => {
@@ -163,36 +163,29 @@ async function startChat(withGreeting = false) {
     input.value = '';
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    const typingDiv = document.createElement('div');
-    typingDiv.id = 'typing-indicator';
-    typingDiv.textContent = 'Healthie AI печатает';
-    messagesDiv.appendChild(typingDiv);
+    const typing = document.createElement('div');
+    typing.id = 'typing-indicator';
+    typing.textContent = 'Healthie AI печатает';
+    messagesDiv.appendChild(typing);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     const reply = await sendMessageToAI(text);
-    typingDiv.remove();
+    typing.remove();
     messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    const updatedMessages = [...(quizData.last_messages || []), { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
-    await updateLastMessages(updatedMessages);
+    const updated = [...(quizData.last_messages || []), { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
+    quizData.last_messages = updated;
+    await saveQuizData(quizData);
   };
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (window.Telegram && Telegram.WebApp) {
+  if (window.Telegram && Telegram.WebApp?.initDataUnsafe?.user?.id) {
     Telegram.WebApp.ready();
-    const tgUser = Telegram.WebApp.initDataUnsafe?.user;
-    if (tgUser?.id) userId = tgUser.id.toString();
+    userId = Telegram.WebApp.initDataUnsafe.user.id.toString();
   }
-  const existingData = await fetchUserData();
-  if (existingData && existingData.name && existingData.running_frequency) {
-    quizData = existingData;
-    await startChat(false);
-  } else {
-    document.getElementById('quiz-container').style.display = 'block';
-    showStep(0);
-  }
+  await startChat(true);
 });
 </script>
 </body>
