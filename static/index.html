@@ -12,6 +12,7 @@
       height: 100%;
       font-family: sans-serif;
       overflow: hidden;
+      -webkit-overflow-scrolling: touch;
     }
 
     body::before {
@@ -100,6 +101,7 @@
       max-width: 45%;
       word-wrap: break-word;
       font-size: 1em;
+      white-space: pre-wrap;
     }
 
     .user {
@@ -214,13 +216,11 @@ async function sendMessageToAI(userMessage, isFirst = false) {
   history.forEach(m => {
     prompt += (m.role === 'user' ? 'Пользователь: ' : 'AI: ') + m.text + '\n';
   });
-
   if (isFirst) {
     prompt += `Ответь от мужского имени. Поздравь что он вместе с Duco AI. Задай полезные и воодушевляющие вопросы: когда планируешь начать бегать? где хочешь бегать (улица, стадион)? какие у тебя цели — вес, форма, дисциплина? Пиши дружелюбно, коротко (2-3 предложения).`;
   } else {
     prompt += 'Ответь кратко, понятно и с заботой. Не больше 4-5 предложений.';
   }
-
   const res = await fetch(GEMINI_API_URL, {
     method: 'POST',
     body: JSON.stringify({ prompt }),
@@ -240,9 +240,11 @@ function showStep(i) {
     ? `<input id="input" required />`
     : `<select id="input">${step.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
   container.innerHTML += inputHtml + `<button id="next">Далее</button>`;
+  const input = document.getElementById('input');
+  input.focus();
 
   document.getElementById('next').onclick = () => {
-    const val = document.getElementById('input').value.trim();
+    const val = input.value.trim();
     if (!val) return;
     quizData[step.key] = (step.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР') ? 'нет' : val;
     if (i + 1 < quizSteps.length) showStep(i + 1);
@@ -287,6 +289,12 @@ async function startChat(skipGreeting = false, localQuizData = null) {
 
   input.addEventListener('input', () => {
     button.disabled = input.value.trim() === '';
+  });
+
+  document.body.addEventListener('click', (e) => {
+    if (!chatForm.contains(e.target)) {
+      input.blur();
+    }
   });
 
   for (const msg of history) {
