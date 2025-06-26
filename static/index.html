@@ -18,35 +18,31 @@
       content: '';
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
+      background-image: url('bg/iron.jpg'); /* Будет заменяться динамически */
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
       z-index: -1;
-      opacity: 1;
-      transition: background-image 0.3s ease-in-out;
-    }
-
-    #quiz-container, #chat-container {
-      max-width: 500px;
-      margin: auto;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(8px);
-      padding: 1em;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      height: 100vh;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
     }
 
     #loader {
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 2em;
-      font-style: italic;
+      height: 100vh;
       font-size: 1.2em;
+      color: #888;
+    }
+
+    #quiz-container, #chat-container {
+      max-width: 500px;
+      margin: auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      padding: 1em;
+      background: transparent;
     }
 
     #messages {
@@ -59,61 +55,51 @@
     }
 
     .msg {
-      padding: 0.5em 0.9em;
-      margin: 0 0.5em;
+      padding: 0.5em 1em;
       border-radius: 12px;
       max-width: 80%;
       word-wrap: break-word;
-      white-space: pre-wrap;
+      background: rgba(255,255,255,0.8);
     }
 
     .user {
-      background: rgba(160, 220, 255, 0.8);
       align-self: flex-end;
+      background: rgba(208, 240, 255, 0.8);
     }
 
     .ai {
-      background: rgba(230, 230, 230, 0.85);
       align-self: flex-start;
+      background: rgba(240, 240, 240, 0.8);
     }
 
     #chat-form {
       display: flex;
-      margin-top: auto;
       gap: 8px;
     }
 
     #chat-form input {
       flex-grow: 1;
-      border: 1px solid #ccc;
       border-radius: 20px;
-      padding: 0.6em 1em;
+      padding: 10px;
+      border: 1px solid #ccc;
       font-size: 1em;
     }
 
     #chat-form button {
-      background: #5865F2;
-      color: white;
       border: none;
+      background-color: #5865F2;
+      color: white;
       border-radius: 50%;
       width: 40px;
       height: 40px;
-      font-size: 16px;
-      cursor: pointer;
     }
 
     #chat-form button:disabled {
       background: #ccc;
-      cursor: not-allowed;
-    }
-
-    h2 {
-      margin: 0 0 10px;
     }
   </style>
 </head>
 <body>
-
 <div id="loader">Загрузка...</div>
 <div id="quiz-container" style="display:none;"></div>
 <div id="chat-container" style="display:none;">
@@ -139,32 +125,19 @@ const quizSteps = [
 ];
 
 function getBackgroundByStyle(style) {
-  switch(style) {
-    case 'Железный Наставник': return 'bg/iron.jpg';
-    case 'Энерджайзер-Зажигалка': return 'bg/energizer.jpg';
-    case 'Спокойный Мудрец': return 'bg/sage.jpg';
-    case 'АБСОЛЮТНЫЙ ДОМИНАТОР': return 'bg/dominator.jpg';
-    default: return '';
-  }
+  const map = {
+    'Железный Наставник': 'bg/iron.jpg',
+    'Энерджайзер-Зажигалка': 'bg/energizer.jpg',
+    'Спокойный Мудрец': 'bg/sage.jpg',
+    'АБСОЛЮТНЫЙ ДОМИНАТОР': 'bg/dominator.jpg'
+  };
+  return map[style] || 'bg/iron.jpg';
 }
 
 function setBackgroundImage(style) {
   const url = getBackgroundByStyle(style);
-  if (url) {
-    document.body.style.setProperty('--bg-url', `url(${url})`);
-    document.body.style.backgroundImage = `url(${url})`;
-    document.body.style.backgroundSize = 'cover';
-    document.body.style.backgroundPosition = 'center';
-  }
-  document.body.style.setProperty('--style', style);
-  document.body.querySelector('body::before');
-  document.body.style.setProperty('--image', `url(${url})`);
-  document.body.style.setProperty('--overlay', 'rgba(255,255,255,0.3)');
-  document.body.style.setProperty('--blur', '10px');
-  document.body.style.setProperty('--bg-opacity', '0.5');
-  document.querySelector('body::before');
-  document.body.style.setProperty('--transition', 'background-image 0.4s ease-in-out');
-  document.body.style.setProperty('--background-repeat', 'no-repeat');
+  document.body.style.setProperty('--bg', `url(${url})`);
+  document.body.style.backgroundImage = `url(${url})`;
 }
 
 async function fetchUserData() {
@@ -201,13 +174,14 @@ async function sendMessageToAI(userMessage) {
 }
 
 function showStep(i) {
-  const quizContainer = document.getElementById('quiz-container');
+  const container = document.getElementById('quiz-container');
   const step = quizSteps[i];
-  quizContainer.innerHTML = `<h3>${step.text}</h3>`;
+  container.style.display = 'block';
+  container.innerHTML = `<h3>${step.text}</h3>`;
   const inputHtml = step.type === 'text'
     ? `<input id="input" required />`
     : `<select id="input">${step.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
-  quizContainer.innerHTML += inputHtml + `<button id="next">Далее</button>`;
+  container.innerHTML += inputHtml + `<button id="next">Далее</button>`;
   document.getElementById('next').onclick = () => {
     const val = document.getElementById('input').value.trim();
     if (!val) return;
@@ -234,7 +208,6 @@ async function startChat(skipGreeting = false) {
   const button = chatForm.querySelector('button');
 
   const userData = await fetchUserData();
-
   if (!userData || !userData.name || !userData.running_frequency) {
     document.getElementById('loader').style.display = 'none';
     document.getElementById('quiz-container').style.display = 'block';
@@ -245,12 +218,15 @@ async function startChat(skipGreeting = false) {
   setBackgroundImage(quizData.coaching_style);
 
   const history = quizData.last_messages || [];
-
-  document.getElementById('chat-container').style.display = 'block';
+  document.getElementById('chat-container').style.display = 'flex';
   document.getElementById('loader').style.display = 'none';
   messagesDiv.innerHTML = '';
   input.disabled = false;
-  button.disabled = false;
+  button.disabled = true;
+
+  input.addEventListener('input', () => {
+    button.disabled = input.value.trim() === '';
+  });
 
   for (const msg of history) {
     const cls = msg.role === 'user' ? 'user' : 'ai';
@@ -260,9 +236,8 @@ async function startChat(skipGreeting = false) {
 
   if (!skipGreeting && history.length === 0) {
     const typing = document.createElement('div');
-    typing.id = 'typing-indicator';
-    typing.textContent = 'Healthie AI печатает';
     typing.className = 'msg ai';
+    typing.textContent = 'Healthie AI печатает...';
     messagesDiv.appendChild(typing);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
@@ -284,16 +259,17 @@ async function startChat(skipGreeting = false) {
 
     messagesDiv.innerHTML += `<div class="msg user">${text}</div>`;
     input.value = '';
+    button.disabled = true;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     const typing = document.createElement('div');
-    typing.id = 'typing-indicator';
-    typing.textContent = 'Healthie AI печатает';
     typing.className = 'msg ai';
+    typing.textContent = 'Healthie AI печатает...';
     messagesDiv.appendChild(typing);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     const reply = await sendMessageToAI(text);
+
     typing.remove();
     messagesDiv.innerHTML += `<div class="msg ai">${reply}</div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -309,7 +285,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     Telegram.WebApp.ready();
     userId = Telegram.WebApp.initDataUnsafe.user.id.toString();
   }
-  document.getElementById('loader').style.display = 'block';
   await startChat(true);
 });
 </script>
