@@ -243,25 +243,29 @@ async function finishQuiz() {
   quizData.last_greet_ts = new Date().toISOString();
   await saveQuizData(quizData);
 
-  // Сменить фон сразу после завершения квиза
-  setBackgroundImage(quizData.coaching_style);
-
-  await startChat(false);
+  await startChat(false, quizData); // передаём локальные данные
   document.getElementById('loader').style.display = 'none';
 }
 
-async function startChat(skipGreeting = false) {
+async function startChat(skipGreeting = false, localQuizData = null) {
   const messagesDiv = document.getElementById('messages');
   const chatForm = document.getElementById('chat-form');
   const input = document.getElementById('user-input');
   const button = chatForm.querySelector('button');
 
-  const userData = await fetchUserData();
+  let userData = localQuizData;
+  if (!userData) {
+    userData = await fetchUserData();
+  }
+
   if (!userData || !userData.name || !userData.running_frequency) {
     document.getElementById('loader').style.display = 'none';
     document.getElementById('quiz-container').style.display = 'flex';
     return showStep(0);
   }
+
+  quizData = userData;
+  setBackgroundImage(quizData.coaching_style);
 
   quizData = userData;
   setBackgroundImage(quizData.coaching_style);
