@@ -1,25 +1,27 @@
-/* styles.css — полный код с обновлённой версткой */
-
+/* Сбрасываем отступы и заполняем высоту окна, задаём базовый шрифт */
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   font-family: sans-serif;
-  overflow: hidden;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden; /* Отключаем прокрутку по умолчанию */
+  -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
 }
 
+/* Фоновое изображение через псевдоэлемент body::before,
+чтобы легко менять через CSS-переменную --bg-url */
 body::before {
   content: '';
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-image: var(--bg-url, url('bg/default.jpg'));
-  background-size: cover;
+  background-image: var(--bg-url, url('bg/default.jpg')); /* Фон по умолчанию */
+  background-size: cover; /* Покрываем весь экран */
   background-position: center;
   background-repeat: no-repeat;
-  z-index: -1;
+  z-index: -1; /* За всеми элементами */
 }
 
+/* Стили для блока загрузки - центрируем текст и делаем полупрозрачный фон */
 #loader {
   display: flex;
   justify-content: center;
@@ -27,9 +29,11 @@ body::before {
   height: 100vh;
   font-size: 1.2em;
   color: #fff;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px); /* Размытие фона под загрузкой */
 }
 
+/* Контейнеры для квиза и чата — ограничиваем ширину,
+центруем, задаём высоту, делаем flex-колонку с внутренним отступом */
 #quiz-container, #chat-container {
   max-width: 500px;
   margin: auto;
@@ -38,17 +42,19 @@ body::before {
   flex-direction: column;
   box-sizing: border-box;
   padding: 1em;
-  background: transparent;
+  background: transparent; /* Прозрачный фон, чтобы был виден body::before */
 }
 
+/* Особые настройки для квиза */
 #quiz-container {
   justify-content: flex-start;
   align-items: center;
   text-align: center;
   padding-top: 40px;
-  transition: all 0.3s ease-in-out;
+  transition: all 0.3s ease-in-out; /* Плавное появление/исчезание */
 }
 
+/* Заголовок вопроса в квизе */
 .quiz-question {
   font-size: 1.2em;
   color: #fff;
@@ -56,6 +62,7 @@ body::before {
   max-width: 90%;
 }
 
+/* Общие стили для полей ввода, селектов, текстовых областей квиза */
 .quiz-input, .quiz-select, .quiz-textarea {
   width: 100%;
   padding: 14px;
@@ -63,59 +70,66 @@ body::before {
   border-radius: 20px;
   border: none;
   margin-bottom: 1em;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.9); /* Белый с прозрачностью */
   color: #000;
   transition: all 0.3s ease;
 }
 
+/* Кнопка "Далее" в квизе */
 .quiz-button {
   padding: 14px 20px;
   font-size: 1.1em;
   border: none;
   border-radius: 25px;
-  background-color: #5865F2;
+  background-color: #5865F2; /* Фирменный синий */
   color: white;
   width: 100%;
   transition: all 0.3s ease;
   margin-top: 20px;
 }
 
-/* Чат */
+/* --- Стили для чата --- */
+
+/* Контейнер сообщений — вертикальный стек, прокрутка, отступы */
 #messages {
   flex-grow: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-end; /* Сообщения справа */
   gap: 8px;
   padding-bottom: 10px;
 }
 
+/* Базовый стиль сообщения */
 .chat-message {
   padding: 10px 16px;
   border-radius: 20px;
   max-width: 45%;
   word-wrap: break-word;
   font-size: 1em;
-  white-space: pre-wrap;
+  white-space: pre-wrap; /* Сохраняем переносы в тексте */
 }
 
+/* Сообщения пользователя — светло-серый фон, справа */
 .user-message {
   background: rgba(240, 240, 240, 0.9);
   align-self: flex-end;
 }
 
+/* Сообщения AI — светло-голубой фон, тоже справа (можно поменять) */
 .ai-message {
   background: rgba(208, 240, 255, 0.9);
   align-self: flex-end;
 }
 
-/* Форма чата */
+/* --- Форма ввода чата --- */
 #chat-form {
   display: flex;
   gap: 8px;
 }
 
+/* Поле ввода текста */
 #chat-form input {
   flex-grow: 1;
   border-radius: 20px;
@@ -126,6 +140,7 @@ body::before {
   transition: all 0.3s ease;
 }
 
+/* Кнопка отправки — круглая, синий фон, белый текст */
 #chat-form button {
   border: none;
   background-color: #5865F2;
@@ -137,7 +152,8 @@ body::before {
   transition: all 0.3s ease;
 }
 
-/* Выбор наставника */
+/* --- Выбор стиля наставника --- */
+
 .style-buttons-container {
   display: flex;
   flex-direction: column;
@@ -147,6 +163,7 @@ body::before {
   width: 100%;
 }
 
+/* Каждая строка с кнопками и кнопкой инфо */
 .style-button-row {
   display: flex;
   align-items: center;
@@ -154,6 +171,7 @@ body::before {
   gap: 10px;
 }
 
+/* Кнопка выбора стиля — синий фон, скругления, курсор */
 .style-button {
   flex-grow: 1;
   padding: 14px 20px;
@@ -167,11 +185,13 @@ body::before {
   text-align: center;
 }
 
+/* Активная выбранная кнопка — зелёный фон, белая обводка */
 .style-button.selected {
   background-color: #4CAF50;
   box-shadow: 0 0 0 2px white;
 }
 
+/* Кнопка-инфо — круглая полупрозрачная, чёрный текст */
 .style-info-button {
   width: 36px;
   height: 36px;
@@ -184,6 +204,7 @@ body::before {
   flex-shrink: 0;
 }
 
+/* Всплывающая подсказка под кнопкой стиля — скрыта по умолчанию */
 .style-tooltip {
   display: none;
   background: rgba(0,0,0,0.8);
@@ -195,6 +216,7 @@ body::before {
   width: 100%;
 }
 
+/* --- Стили для чекбоксов в квизе --- */
 .checkbox-group {
   width: 100%;
   text-align: left;
@@ -205,18 +227,21 @@ body::before {
   box-sizing: border-box;
 }
 
+/* Элемент чекбокса с меткой — выравнивание по центру */
 .checkbox-item {
   margin: 10px 0;
   display: flex;
   align-items: center;
 }
 
+/* Стили для чекбокса — отступы справа */
 .checkbox-item input {
   width: auto;
   margin-right: 10px;
   margin-bottom: 0;
 }
 
+/* Метка рядом с чекбоксом — занимает всю оставшуюся ширину */
 .checkbox-item label {
   flex: 1;
   color: #000;

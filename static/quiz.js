@@ -1,5 +1,6 @@
 class Quiz {
   constructor() {
+    // Определяем шаги квиза — вопросы, типы ответов и варианты выбора
     this.steps = [
       { 
         key: 'name', 
@@ -46,7 +47,7 @@ class Quiz {
           'Просто побыть на свежем воздухе и подвигаться',
           'Улучшить выносливость'
         ],
-        otherOption: true
+        otherOption: true // Разрешаем добавить свой вариант
       },
       { 
         key: 'overcome_triggers', 
@@ -59,37 +60,41 @@ class Quiz {
           'Просто начать, не думая, а там втянусь',
           'Договоренность с кем-то или поддержка близких'
         ],
-        otherOption: true
+        otherOption: true // Можно добавить свой способ
       },
       { 
         key: 'coaching_style', 
         text: (name, data) => `Спасибо за честные ответы, ${name}! Это поможет AI-коучу тебя понимать. Последний вопрос: представь, что AI-коуч – это твой персональный мотиватор для бега. Какой стиль общения тебе ближе?`,
         type: 'custom-select',
-        options: Object.keys(Config.coachingStyles)
+        options: Object.keys(Config.coachingStyles) // Варианты стилей из конфига
       }
     ];
     
-    this.currentStep = 0;
-    this.quizData = {};
-    this.selectedStyle = null;
+    this.currentStep = 0;   // Индекс текущего шага квиза
+    this.quizData = {};     // Собранные ответы пользователя
+    this.selectedStyle = null; // Выбранный стиль коуча (для кастомного селекта)
   }
 
+  // Запуск квиза — получаем userId и показываем первый вопрос
   async init() {
     this.userId = ApiService.getUserId();
     this.showStep(0);
   }
 
+  // Отображение вопроса по индексу шага
   showStep(i) {
     this.currentStep = i;
     const step = this.steps[i];
     const container = document.getElementById('quiz-container');
     
+    // Получаем текст вопроса (строка или функция)
     const questionText = Prompts.getQuizStepPrompt(step, this.quizData.name, this.quizData);
     container.style.display = 'flex';
     container.innerHTML = `<h3 class="quiz-question">${questionText}</h3>`;
     
     let inputHtml = '';
     
+    // Генерируем HTML для поля ввода в зависимости от типа вопроса
     switch(step.type) {
       case 'text':
         inputHtml = `<input class="quiz-input" id="input" required />`;
@@ -122,6 +127,7 @@ class Quiz {
         `;
         break;
       case 'custom-select':
+        // Для выбора стиля — кнопки с подсказками
         inputHtml = `
           <div class="style-select-container">
             <div class="style-buttons-container">
@@ -131,7 +137,7 @@ class Quiz {
                     <button class="style-button" data-style="${style}" onclick="quiz.selectStyle('${style}')">${style}</button>
                     <button class="style-info-button" onclick="quiz.showStyleTooltip('${style}')">i</button>
                   </div>
-                  <div id="tooltip-${style}" class="style-tooltip">
+                  <div id="tooltip-${style}" class="style-tooltip" style="display:none;">
                     ${Config.coachingStyles[style]}
                   </div>
                 </div>
@@ -143,11 +149,13 @@ class Quiz {
         break;
     }
     
+    // Добавляем кнопку "Далее", у checkbox и custom-select по умолчанию она отключена
     container.innerHTML += inputHtml + `<button class="quiz-button" id="next" ${step.type === 'checkbox' || step.type === 'custom-select' ? 'disabled' : ''}>Далее</button>`;
     
     const nextBtn = document.getElementById('next');
     const input = step.type === 'checkbox' ? null : document.getElementById('input');
     
+    // Для checkbox: активируем кнопку, если выбран хоть один чекбокс или введён другой вариант
     if (step.type === 'checkbox') {
       const checkboxes = container.querySelectorAll('input[type="checkbox"]');
       const otherInput = container.querySelector('#other-input');
@@ -166,15 +174,18 @@ class Quiz {
         otherInput.addEventListener('input', updateNextBtn);
       }
     } else if (input) {
+      // Для текстовых и select полей — кнопка активна только если есть текст/выбор
       input.addEventListener('input', () => {
         nextBtn.disabled = input.value.trim() === '';
       });
       input.focus();
     }
     
+    // Обработчик клика на кнопку "Далее"
     nextBtn.onclick = () => this.handleNextStep(step);
   }
 
+  // Обработка выбора стиля коуча (custom-select)
   selectStyle(style) {
     if (this.selectedStyle) {
       const prevButton = document.querySelector(`.style-button[data-style="${this.selectedStyle}"]`);
@@ -188,15 +199,18 @@ class Quiz {
     document.getElementById('next').disabled = false;
   }
 
+  // Показать или скрыть подсказку по стилю
   showStyleTooltip(style) {
     const tooltip = document.getElementById(`tooltip-${style}`);
     tooltip.style.display = tooltip.style.display === 'block' ? 'none' : 'block';
   }
 
+  // Обработка перехода к следующему шагу после нажатия "Далее"
   handleNextStep(step) {
     let val;
     
     if (step.type === 'checkbox') {
+      // Для чекбоксов собираем все выбранные значения + доп. поле, если есть
       const selected = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
         .map(cb => cb.value);
       if (step.otherOption) {
@@ -205,37 +219,44 @@ class Quiz {
       }
       val = selected.join(', ');
     } else if (step.type === 'custom-select') {
+      // Для выбора стиля используем selectedStyle
       val = this.selectedStyle;
-      if (!val) return;
+      if (!val) return; // Если стиль не выбран — не идем дальше
     } else {
+      // Для остальных — просто берем значение из input
       val = document.getElementById('input').value.trim();
     }
     
-    if (!val && step.type !== 'checkbox') return;
+    if (!val && step.type !== 'checkbox') return; // Без значения нельзя идти дальше
     
-    this.quizData[step.key] = val;
+    this.quizData[step.key] = val; // Сохраняем ответ
     
     if (this.currentStep + 1 < this.steps.length) {
-      this.showStep(this.currentStep + 1);
+      this.showStep(this.currentStep + 1); // Показать следующий шаг
     } else {
-      this.finishQuiz();
+      this.finishQuiz(); // Все шаги пройдены — заканчиваем квиз
     }
   }
 
+  // Финализация квиза — сохраняем данные и запускаем чат
   async finishQuiz() {
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('loader').style.display = 'flex';
     
     try {
+      // Добавляем служебные поля в данные
       this.quizData.last_messages = [];
       this.quizData.last_greet_ts = new Date().toISOString();
       this.quizData.signup_date = new Date().toISOString();
       
+      // Сохраняем на сервере через API
       await ApiService.saveQuizData(this.userId, this.quizData);
       
+      // Скрываем загрузку и показываем чат
       document.getElementById('chat-container').style.display = 'flex';
       document.getElementById('loader').style.display = 'none';
       
+      // Запускаем чат с новыми данными
       window.startChat(false, this.quizData);
     } catch (error) {
       console.error('Ошибка при завершении квиза:', error);
@@ -244,4 +265,5 @@ class Quiz {
   }
 }
 
+// Экспортируем экземпляр квиза в глобальную область видимости
 window.quiz = new Quiz();

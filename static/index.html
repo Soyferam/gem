@@ -4,22 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Duco AI</title>
+  <!-- Подключение Telegram WebApp SDK для работы с Telegram API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Подключение основного CSS -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Индикатор загрузки при старте приложения -->
   <div id="loader">Загрузка Duco AI...</div>
 
+  <!-- Контейнер для квиза (скрыт по умолчанию) -->
   <div id="quiz-container" style="display: none;"></div>
 
+  <!-- Контейнер для чата с AI (скрыт по умолчанию) -->
   <div id="chat-container" style="display: none;">
-    <div id="messages"></div>
+    <div id="messages"></div> <!-- Здесь отображаются сообщения чата -->
     <form id="chat-form">
+      <!-- Поле ввода сообщения -->
       <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required disabled />
+      <!-- Кнопка отправки сообщения -->
       <button type="submit" disabled>➤</button>
     </form>
   </div>
 
+  <!-- Подключение всех скриптов приложения в правильном порядке -->
   <script src="config.js"></script>
   <script src="api.js"></script>
   <script src="prompts.js"></script>

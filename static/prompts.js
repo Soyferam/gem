@@ -1,4 +1,5 @@
 const Prompts = {
+  // Формирует приветственное сообщение для AI на основе данных пользователя
   getGreetingPrompt: (userData) => {
     return `Ты — ${userData.coaching_style}.
 Имя пользователя: ${userData.name}.
@@ -8,6 +9,7 @@ const Prompts = {
 Максимум 3–4 предложения. Без фраз «ты прошёл квиз». Без англицизмов и смайлов.`;
   },
 
+  // Формирует подсказку для AI, учитывая профиль пользователя, историю диалога и последнее сообщение пользователя
   getChatPrompt: (userData, userMessage, isFirst = false) => {
     const profileText = `Профиль:
 Имя: ${userData.name}
@@ -17,6 +19,7 @@ const Prompts = {
 Триггеры: ${userData.overcome_triggers}
 Стиль: ${userData.coaching_style}`;
 
+    // Формируем диалог из истории и последнего сообщения
     const history = (userData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
     let prompt = `${profileText}\n\nДиалог:\n`;
 
@@ -25,14 +28,17 @@ const Prompts = {
     });
 
     if (isFirst) {
+      // Особые инструкции для первого ответа от AI
       prompt += `Ответь от мужского имени. Не здоровайся. Поддержи ответ пользователя, прокомментируй и задай конкретный вопрос. 2–3 предложения.`;
     } else {
+      // Инструкция для последующих сообщений — кратко, по делу, без приветствий
       prompt += `Ответь кратко. Без приветствий. Продолжай по делу — мотивация, следующий шаг, полезный совет. 2–4 предложения.`;
     }
 
     return prompt;
   },
 
+  // Возвращает текст вопроса для шага квиза (может быть функцией или строкой)
   getQuizStepPrompt: (step, name, data) => {
     if (typeof step.text === 'function') {
       return step.text(name || '', data);
@@ -41,4 +47,5 @@ const Prompts = {
   }
 };
 
+// Делаем объект Prompts глобально доступным
 window.Prompts = Prompts;

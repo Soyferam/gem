@@ -1,4 +1,6 @@
+// Класс для работы с внешними API: получение и сохранение данных, взаимодействие с AI
 class ApiService {
+  // Получение данных пользователя по userId из Google Sheets
   static async fetchUserData(userId) {
     try {
       const res = await fetch(`${Config.SHEETS_API_URL}?user_id=${userId}`);
@@ -10,6 +12,7 @@ class ApiService {
     }
   }
 
+  // Сохранение данных квиза пользователя (включая профиль и историю)
   static async saveQuizData(userId, data) {
     try {
       const res = await fetch(Config.SHEETS_API_URL, {
@@ -25,6 +28,7 @@ class ApiService {
     }
   }
 
+  // Отправка запроса к AI (Gemini API) с текстом prompt и получение ответа
   static async sendMessageToAI(prompt) {
     try {
       const res = await fetch(Config.GEMINI_API_URL, {
@@ -41,6 +45,7 @@ class ApiService {
     }
   }
 
+  // Получение userId из Telegram WebApp или возврат тестового значения
   static getUserId() {
     try {
       return Telegram.WebApp.initDataUnsafe.user?.id?.toString() || 'test_user';
@@ -50,4 +55,5 @@ class ApiService {
   }
 }
 
+// Делаем ApiService доступным глобально для других модулей
 window.ApiService = ApiService;
