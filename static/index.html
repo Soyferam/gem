@@ -124,22 +124,62 @@
       display: none;
     }
 
-    .style-option {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .style-select-container {
       width: 100%;
-      margin-bottom: 10px;
+      margin-bottom: 1em;
     }
 
-    .style-info-btn {
-      background: none;
-      border: none;
-      color: #5865F2;
-      font-weight: bold;
+    .style-title {
+      color: #fff;
       font-size: 1.2em;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .style-buttons-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .style-button-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .style-button {
+      flex: 1;
+      padding: 14px 20px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 25px;
+      background-color: #5865F2;
+      color: white;
+      text-align: center;
       cursor: pointer;
-      margin-left: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .style-button.selected {
+      background-color: #4752C4;
+    }
+
+    .style-info-button {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background-color: #5865F2;
+      color: white;
+      border: none;
+      font-size: 1.2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
     }
 
     .style-tooltip {
@@ -150,6 +190,7 @@
       border-radius: 10px;
       margin-top: 5px;
       font-size: 0.9em;
+      width: 100%;
     }
 
     #messages {
@@ -230,6 +271,7 @@ const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 let userId = 'test_user';
 let quizData = {};
 let hasSentGreeting = false;
+let selectedStyle = null;
 
 const coachingStyles = {
   'Железный Наставник': 'Строгий, но справедливый тренер. Будет держать вас в тонусе, но с заботой о вашем прогрессе.',
@@ -421,32 +463,30 @@ function showStep(i) {
   }
   else if (step.type === 'custom-select') {
     inputHtml = `
-      <select id="input" required style="width: 100%;">
-        <option value="" disabled selected>Выбрать стиль</option>
-        ${step.options.map(style => `
-          <option value="${style}">${style}</option>
-        `).join('')}
-      </select>
-      <div style="margin-top: 15px; text-align: left;">
-        ${step.options.map(style => `
-          <div style="margin-bottom: 10px;">
-            <div class="style-option">
-              <span>${style}</span>
-              <button class="style-info-btn" onclick="showStyleTooltip('${style}')">i</button>
+      <div class="style-select-container">
+        <div class="style-title">Выберите стиль вашего коуча</div>
+        <div class="style-buttons-container">
+          ${step.options.map(style => `
+            <div>
+              <div class="style-button-row">
+                <button class="style-button" data-style="${style}" onclick="selectStyle('${style}')">${style}</button>
+                <button class="style-info-button" onclick="showStyleTooltip('${style}')">i</button>
+              </div>
+              <div id="tooltip-${style}" class="style-tooltip">
+                ${coachingStyles[style]}
+              </div>
             </div>
-            <div id="tooltip-${style}" class="style-tooltip">
-              ${coachingStyles[style]}
-            </div>
-          </div>
-        `).join('')}
+          `).join('')}
+        </div>
+        <input type="hidden" id="style-input" value="">
       </div>
     `;
   }
   
-  container.innerHTML += inputHtml + `<button id="next" ${step.type === 'checkbox' ? 'disabled' : ''}>Далее</button>`;
+  container.innerHTML += inputHtml + `<button id="next" ${step.type === 'checkbox' || step.type === 'custom-select' ? 'disabled' : ''}>Далее</button>`;
   
   const nextBtn = document.getElementById('next');
-  const input = step.type === 'checkbox' || step.type === 'custom-select' ? null : document.getElementById('input');
+  const input = step.type === 'checkbox' ? null : document.getElementById('input');
   
   if (step.type === 'checkbox') {
     const checkboxes = container.querySelectorAll('input[type="checkbox"]');
@@ -484,7 +524,8 @@ function showStep(i) {
       }
       val = selected.join(', ');
     } else if (step.type === 'custom-select') {
-      val = document.getElementById('input').value.trim();
+      val = selectedStyle;
+      if (!val) return;
     } else {
       val = input.value.trim();
     }
@@ -499,6 +540,23 @@ function showStep(i) {
       finishQuiz();
     }
   };
+}
+
+function selectStyle(style) {
+  selectedStyle = style;
+  document.getElementById('next').disabled = false;
+  
+  // Сброс выделения всех кнопок
+  const buttons = document.querySelectorAll('.style-button');
+  buttons.forEach(btn => {
+    btn.classList.remove('selected');
+  });
+  
+  // Выделение выбранной кнопки
+  const selectedButton = document.querySelector(`.style-button[data-style="${style}"]`);
+  if (selectedButton) {
+    selectedButton.classList.add('selected');
+  }
 }
 
 function showStyleTooltip(style) {
