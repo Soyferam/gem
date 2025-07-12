@@ -1,38 +1,53 @@
-class App {
-  static async init() {
+class ApiService {
+  static async fetchUserData(userId) {
     try {
-      if (window.Telegram && Telegram.WebApp?.initDataUnsafe?.user?.id) {
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand();
-      }
-      
-      const userId = ApiService.getUserId();
-      const userData = await this.checkUserData(userId);
-      
-      if (!userData || !userData.name || !userData.running_frequency) {
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('quiz-container').style.display = 'flex';
-        quiz.init();
-      } else {
-        await startChat(true, userData);
-      }
+      const res = await fetch(`${Config.SHEETS_API_URL}?user_id=${userId}`);
+      if (!res.ok) throw new Error('Network response was not ok');
+      return await res.json();
     } catch (error) {
-      console.error('Ошибка при инициализации:', error);
-      document.getElementById('loader').textContent = 'Ошибка загрузки. Пожалуйста, обновите страницу.';
+      console.error('Error fetching user data:', error);
+      throw error;
     }
   }
 
-  static async checkUserData(userId) {
+  static async saveQuizData(userId, data) {
     try {
-      const data = await ApiService.fetchUserData(userId);
-      return data?.data || null;
+      const res = await fetch(Config.SHEETS_API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: userId, ...data }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Network response was not ok');
+      return await res.json();
     } catch (error) {
-      console.error('Error checking user data:', error);
-      return null;
+      console.error('Error saving quiz data:', error);
+      throw error;
+    }
+  }
+
+  static async sendMessageToAI(prompt) {
+    try {
+      const res = await fetch(Config.GEMINI_API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Network response was not ok');
+      const json = await res.json();
+      return json?.response || 'Ошибка от AI';
+    } catch (error) {
+      console.error('Error sending message to AI:', error);
+      throw error;
+    }
+  }
+
+  static getUserId() {
+    try {
+      return Telegram.WebApp.initDataUnsafe.user?.id?.toString() || 'test_user';
+    } catch (e) {
+      return 'test_user';
     }
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  App.init();
-});
+window.ApiService = ApiService;
