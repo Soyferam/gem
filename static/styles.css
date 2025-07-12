@@ -160,10 +160,10 @@ body::before {
 #messages {
   flex-grow: 1;
   overflow-y: auto;
-  padding: 10px 0;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .chat-message {
@@ -181,14 +181,14 @@ body::before {
 }
 
 .user-message {
-  background: rgba(88, 101, 242, 0.9);
+  background: #5865F2;
   color: white;
   align-self: flex-end;
   border-bottom-right-radius: 5px;
 }
 
 .ai-message {
-  background: rgba(255,255,255,0.95);
+  background: #f0f0f0;
   color: #333;
   align-self: flex-start;
   border-bottom-left-radius: 5px;

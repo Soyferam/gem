@@ -14,13 +14,42 @@ class Quiz {
           {value: '1 раз', text: '1 раз'},
           {value: '2 раза', text: '2 раза'},
           {value: '3 раза', text: '3 раза'},
-          {value: 'Больше 3 раз', text: 'Больше 3 раз'}
+          {value: '4+ раза', text: '4+ раза'}
         ],
         placeholder: 'Выбрать'
       },
       { 
+        key: 'preferred_days', 
+        text: (name, data) => `${name}, какие дни тебе удобны для бега? Можно выбрать несколько.`,
+        type: 'checkbox',
+        options: [
+          'Понедельник',
+          'Вторник',
+          'Среда',
+          'Четверг',
+          'Пятница',
+          'Суббота',
+          'Воскресенье',
+          'Любые дни'
+        ]
+      },
+      { 
+        key: 'primary_motivation', 
+        text: (name, data) => `${name}, что тебя мотивирует бегать?`,
+        type: 'checkbox',
+        options: [
+          'Улучшение здоровья',
+          'Снижение веса',
+          'Снятие стресса',
+          'Улучшение формы',
+          'Соревнование',
+          'Другое'
+        ],
+        otherOption: true
+      },
+      { 
         key: 'coaching_style', 
-        text: (name, data) => `${name}, какой стиль общения тебе ближе?`,
+        text: (name, data) => `${name}, выбери стиль общения:`,
         type: 'custom-select',
         options: Object.keys(Config.coachingStyles)
       }
@@ -63,6 +92,21 @@ class Quiz {
         </select>
       `;
     }
+    else if (step.type === 'checkbox') {
+      inputHtml = `
+        <div class="checkbox-group">
+          ${step.options.map((option, idx) => `
+            <div class="checkbox-item">
+              <input type="checkbox" id="option-${idx}" value="${option}">
+              <label for="option-${idx}">${option}</label>
+            </div>
+          `).join('')}
+          ${step.otherOption ? `
+            <input type="text" class="quiz-input" id="other-input" placeholder="Укажите свой вариант">
+          ` : ''}
+        </div>
+      `;
+    }
     else if (step.type === 'custom-select') {
       inputHtml = `
         <div class="style-select-container">
@@ -81,21 +125,38 @@ class Quiz {
       `;
     }
     
-    container.innerHTML += inputHtml + `<button class="quiz-button" id="next" ${step.type === 'custom-select' ? 'disabled' : ''}>Далее</button>`;
+    container.innerHTML += inputHtml + `<button class="quiz-button" id="next" ${step.type === 'custom-select' || step.type === 'checkbox' ? 'disabled' : ''}>Далее</button>`;
     
     this.setupStepEvents(step);
   }
 
   setupStepEvents(step) {
     const nextBtn = document.getElementById('next');
-    const input = document.getElementById('input');
-
-    if (step.type === 'custom-select') {
+    
+    if (step.type === 'checkbox') {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      const otherInput = document.getElementById('other-input');
+      
+      const updateButton = () => {
+        const anyChecked = Array.from(checkboxes).some(cb => cb.checked) || 
+                         (otherInput && otherInput.value.trim() !== '');
+        nextBtn.disabled = !anyChecked;
+      };
+      
+      checkboxes.forEach(cb => cb.addEventListener('change', updateButton));
+      if (otherInput) otherInput.addEventListener('input', updateButton);
+    } 
+    else if (step.type === 'custom-select') {
       const buttons = document.querySelectorAll('.style-button');
       const infoButtons = document.querySelectorAll('.style-info-button');
       
       buttons.forEach(btn => {
-        btn.addEventListener('click', () => this.selectStyle(btn.dataset.style));
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.style-button').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          this.selectedStyle = btn.dataset.style;
+          nextBtn.disabled = false;
+        });
       });
       
       infoButtons.forEach(btn => {
@@ -105,46 +166,37 @@ class Quiz {
           tooltip.style.display = tooltip.style.display === 'block' ? 'none' : 'block';
         });
       });
-    } 
-    else if (input) {
+    }
+    else {
+      const input = document.getElementById('input');
       input.addEventListener('input', () => {
         nextBtn.disabled = input.value.trim() === '';
-      });
-      
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !nextBtn.disabled) {
-          nextBtn.click();
-        }
       });
     }
     
     nextBtn.addEventListener('click', () => this.handleNextStep(step));
   }
 
-  selectStyle(style) {
-    if (this.selectedStyle) {
-      const prevBtn = document.querySelector(`.style-button[data-style="${this.selectedStyle}"]`);
-      prevBtn?.classList.remove('selected');
-    }
-    
-    this.selectedStyle = style;
-    const selectedBtn = document.querySelector(`.style-button[data-style="${style}"]`);
-    selectedBtn.classList.add('selected');
-    
-    document.getElementById('next').disabled = false;
-  }
-
   handleNextStep(step) {
     let value;
     
-    if (step.type === 'custom-select') {
+    if (step.type === 'checkbox') {
+      const selected = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+        .map(cb => cb.value);
+      if (step.otherOption) {
+        const otherVal = document.getElementById('other-input')?.value.trim();
+        if (otherVal) selected.push(otherVal);
+      }
+      value = selected.join(', ');
+    } 
+    else if (step.type === 'custom-select') {
       value = this.selectedStyle;
-      if (!value) return;
-    } else {
-      const input = document.getElementById('input');
-      value = input.value.trim();
-      if (!value) return;
     }
+    else {
+      value = document.getElementById('input').value.trim();
+    }
+    
+    if (!value) return;
     
     this.quizData[step.key] = value;
     
