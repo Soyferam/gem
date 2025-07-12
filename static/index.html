@@ -1,37 +1,353 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Duco AI - Квиз и Чат</title>
-<link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Duco AI</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+      overflow: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: var(--bg-url, url('bg/default.jpg'));
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: -1;
+    }
+
+    #loader {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-size: 1.2em;
+      color: #fff;
+      backdrop-filter: blur(6px);
+    }
+
+    #quiz-container, #chat-container {
+      max-width: 500px;
+      margin: auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      padding: 1em;
+      background: transparent;
+    }
+
+    #quiz-container {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      transition: all 0.3s ease-in-out;
+    }
+
+    #quiz-container h3 {
+      font-size: 1.4em;
+      color: #fff;
+      margin-bottom: 1em;
+      max-width: 90%;
+    }
+
+    #quiz-container input,
+    #quiz-container select {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1em;
+      border-radius: 20px;
+      border: none;
+      margin-bottom: 1em;
+      background: rgba(255, 255, 255, 0.9);
+      color: #000;
+      transition: all 0.3s ease;
+    }
+
+    #quiz-container button {
+      padding: 14px 20px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 25px;
+      background-color: #5865F2;
+      color: white;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+
+    #messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      padding-bottom: 10px;
+    }
+
+    .msg {
+      padding: 10px 16px;
+      border-radius: 20px;
+      max-width: 45%;
+      word-wrap: break-word;
+      font-size: 1em;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      background: rgba(240, 240, 240, 0.9);
+      align-self: flex-end;
+    }
+
+    .ai {
+      background: rgba(208, 240, 255, 0.9);
+      align-self: flex-end;
+    }
+
+    #chat-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    #chat-form input {
+      flex-grow: 1;
+      border-radius: 20px;
+      padding: 10px;
+      border: none;
+      font-size: 1em;
+      background: rgba(255,255,255,0.9);
+      transition: all 0.3s ease;
+    }
+
+    #chat-form button {
+      border: none;
+      background-color: #5865F2;
+      color: white;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2em;
+      transition: all 0.3s ease;
+    }
+
+    #chat-form button:disabled {
+      background: #ccc;
+    }
+  </style>
 </head>
 <body>
-
-<div id="loader">Загрузка...</div>
-
-<div id="quiz-container" style="display:none;">
-  <!-- сюда квиз будет рендериться -->
-</div>
-
+<div id="loader">Загрузка Duco AI...</div>
+<div id="quiz-container" style="display:none;"></div>
 <div id="chat-container" style="display:none;">
   <div id="messages"></div>
   <form id="chat-form">
-    <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required />
+    <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required disabled />
     <button type="submit" disabled>➤</button>
   </form>
 </div>
 
-<script src="api.js"></script>
-<script src="quiz.js"></script>
-<script src="chat.js"></script>
-
 <script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    // Инициализация приложения
-    await initApp();
-  });
-</script>
+const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
+const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
+let userId = 'test_user';
+let quizData = {};
+
+const quizSteps = [
+  { key: 'name', text: 'Привет! Давай знакомиться 😊 Как я могу к тебе обращаться?', type: 'text' },
+  { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
+  { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
+  { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
+];
+
+function getBackgroundByStyle(style) {
+  const map = {
+    'Железный Наставник': 'bg/iron.jpg',
+    'Энерджайзер-Зажигалка': 'bg/energizer.jpg',
+    'Спокойный Мудрец': 'bg/sage.jpg',
+    'АБСОЛЮТНЫЙ ДОМИНАТОР': 'bg/dominator.jpg'
+  };
+  return map[style] || 'bg/default.jpg';
+}
+
+function setBackgroundImage(style) {
+  const url = getBackgroundByStyle(style);
+  document.body.style.setProperty('--bg-url', `url(${url})`);
+}
+
+function typeText(el, text, speed = 20) {
+  let i = 0;
+  const interval = setInterval(() => {
+    el.textContent += text[i];
+    el.parentElement.scrollTop = el.parentElement.scrollHeight; // scroll container down on each char
+    i++;
+    if (i >= text.length) clearInterval(interval);
+  }, speed);
+}
+
+async function fetchUserData() {
+  const res = await fetch(`${SHEETS_API_URL}?user_id=${userId}`);
+  const json = await res.json();
+  return json?.data || null;
+}
+
+async function saveQuizData(data) {
+  const res = await fetch(SHEETS_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId, ...data }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return await res.json();
+}
+
+async function sendMessageToAI(userMessage, isFirst = false) {
+  const profileText = `Пользователь: ${quizData.name}, бегает ${quizData.running_frequency} раз в неделю, стиль: ${quizData.coaching_style}`;
+  const history = (quizData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
+  let prompt = `${profileText}\n\nИстория диалога:\n`;
+  history.forEach(m => {
+    prompt += (m.role === 'user' ? 'Пользователь: ' : 'AI: ') + m.text + '\n';
+  });
+  if (isFirst) {
+    prompt += `Ответь от мужского имени. Поздравь что он вместе с Duco AI. Задай полезные и воодушевляющие вопросы: когда планируешь начать бегать? где хочешь бегать (улица, стадион)? какие у тебя цели — вес, форма, дисциплина? Пиши дружелюбно, коротко (2-3 предложения).`;
+  } else {
+    prompt += 'Ответь кратко от мужского имени, понятно и с заботой. Предложи что-то. Раскрой его мысль. Не больше 4-5 предложений.';
+  }
+  const res = await fetch(GEMINI_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const json = await res.json();
+  return json?.response || 'Ответ от Duco AI отсутствует';
+}
+
+function showStep(i) {
+  setBackgroundImage('default');
+  const container = document.getElementById('quiz-container');
+  const step = quizSteps[i];
+  container.style.display = 'flex';
+  container.innerHTML = `<h3>${step.text}</h3>`;
+  const inputHtml = step.type === 'text'
+    ? `<input id="input" required />`
+    : `<select id="input">${step.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+  container.innerHTML += inputHtml + `<button id="next">Далее</button>`;
+  const input = document.getElementById('input');
+  input.focus();
+
+  document.getElementById('next').onclick = () => {
+    const val = input.value.trim();
+    if (!val) return;
+    quizData[step.key] = (step.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР') ? 'нет' : val;
+    if (i + 1 < quizSteps.length) showStep(i + 1);
+    else finishQuiz();
+  };
+}
+
+async function finishQuiz() {
+  document.getElementById('quiz-container').style.display = 'none';
+  document.getElementById('loader').style.display = 'flex';
+  quizData.last_messages = [];
+  quizData.last_greet_ts = new Date().toISOString();
+  await saveQuizData(quizData);
+  await startChat(false, quizData);
+  document.getElementById('loader').style.display = 'none';
+}
+
+async function startChat(skipGreeting = false, localQuizData = null) {
+  const messagesDiv = document.getElementById('messages');
+  const chatForm = document.getElementById('chat-form');
+  const input = document.getElementById('user-input');
+  const button = chatForm.querySelector('button');
+
+  let userData = localQuizData;
+  if (!userData) userData = await fetchUserData();
+
+  if (!userData || !userData.name || !userData.running_frequency) {
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('quiz-container').style.display = 'flex';
+    return showStep(0);
+  }
+
+  quizData = userData;
+  setBackgroundImage(quizData.coaching_style);
+
+  const history = quizData.last_messages || [];
+  document.getElementById('chat-container').style.display = 'flex';
+  document.getElementById('loader').style.display = 'none';
+  messagesDiv.innerHTML = '';
+  input.disabled = false;
+  button.disabled = true;
+
+  input.addEventListener('input', () => {
+    button.disabled = input.value.trim() === '';
+  });
+
+  document.body.addEventListener('click', (e) => {
+    if (!chatForm.contains(e.target)) {
+      input.blur();
+    }
+  });
+
+  for (const msg of history) {
+    const cls = msg.role === 'user' ? 'user' : 'ai';
+    messagesDiv.innerHTML += `<div class="msg ${cls}">${msg.text}</div>`;
+  }
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  if (!skipGreeting && history.length === 0) {
+    const typing = document.createElement('div');
+    typing.className = 'msg ai';
+    messagesDiv.appendChild(typing);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    const reply = await sendMessageToAI('Привет! Пользователь прошёл квиз, начни беседу.', true);
+    typeText(typing, reply);
+
+    quizData.last_messages = [{ role: 'ai', text: reply }];
+    await saveQuizData(quizData);
+  }
+
+  chatForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+
+    messagesDiv.innerHTML += `<div class="msg user">${text}</div>`;
+    input.value = '';
+    button.disabled = true;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    const typing = document.createElement('div');
+    typing.className = 'msg ai';
+    messagesDiv.appendChild(typing);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    const reply = await sendMessageToAI(text);
+    typeText(typing, reply);
+
+    const updated = [...(quizData.last_messages || []), { role: 'user', text }, { role: 'ai', text: reply }].slice(-15);
+    quizData.last_messages = updated;
+    await saveQuizData(quizData);
+  };
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (window.Telegram && Telegram.WebApp?.initDataUnsafe?.user?.id) {
+    Telegram.WebApp.ready();
+    userId = Telegram.WebApp.initDataUnsafe.user.id.toString();
+  }
+  await startChat(true);
+});
+</script>
 </body>
 </html>
