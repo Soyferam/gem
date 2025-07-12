@@ -2,37 +2,32 @@ const Prompts = {
   getGreetingPrompt: (userData) => {
     return `Ты — ${userData.coaching_style}.
 Имя пользователя: ${userData.name}.
-Он хочет бегать ${userData.running_frequency} раза(раз) в неделю.
-Он только присоединился к команде Duco AI.
+Он хочет бегать ${userData.running_frequency} в неделю. Мотивация: ${userData.primary_motivation}.
 
-Приветствуй его в выбранном стиле. Задай 2–3 полезных, конкретных вопроса:
-— когда он планирует первую пробежку?
-— где хочет бегать (улица, стадион)?
-— какие цели перед собой ставит (форма, вес, дисциплина)?
-
-Пиши кратко, без смайликов, строго на русском, дружелюбным тоном. Не используй англицизмы. Избегай фраз вроде "ты прошёл квиз".`;
+Поприветствуй его кратко. Ободри и сподвигни начать бег уже на этой неделе. Задай 1–2 вопроса, опираясь на его ответы (например: удобные дни — ${userData.preferred_days}).
+Максимум 3–4 предложения. Без фраз «ты прошёл квиз». Без англицизмов и смайлов.`;
   },
 
   getChatPrompt: (userData, userMessage, isFirst = false) => {
-    const profileText = `Профиль пользователя:
+    const profileText = `Профиль:
 Имя: ${userData.name}
-Частота пробежек: ${userData.running_frequency}
-Удобные дни: ${userData.preferred_days}
+Бегает: ${userData.running_frequency}
+Дни: ${userData.preferred_days}
 Мотивация: ${userData.primary_motivation}
-Триггеры преодоления: ${userData.overcome_triggers}
-Стиль общения коуча: ${userData.coaching_style}`;
+Триггеры: ${userData.overcome_triggers}
+Стиль: ${userData.coaching_style}`;
 
     const history = (userData.last_messages || []).concat([{ role: 'user', text: userMessage }]);
-    let prompt = `${profileText}\n\nИстория диалога:\n`;
+    let prompt = `${profileText}\n\nДиалог:\n`;
 
     history.forEach(m => {
       prompt += (m.role === 'user' ? 'Пользователь: ' : 'AI: ') + m.text + '\n';
     });
 
     if (isFirst) {
-      prompt += `Ответь от мужского имени. Не повторяй приветствие. Продолжай диалог по делу — прокомментируй его ответ и задай уточняющий вопрос. Не более 3 предложений. Без формального "привет", "здравствуй".`;
+      prompt += `Ответь от мужского имени. Не здоровайся. Поддержи ответ пользователя, прокомментируй и задай конкретный вопрос. 2–3 предложения.`;
     } else {
-      prompt += `Ответь кратко от мужского имени. Без приветствий. Поддержи, предложи следующее действие или углубись в его мотивацию. Максимум 3–4 предложения.`;
+      prompt += `Ответь кратко. Без приветствий. Продолжай по делу — мотивация, следующий шаг, полезный совет. 2–4 предложения.`;
     }
 
     return prompt;
