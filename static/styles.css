@@ -46,6 +46,12 @@ body::before {
   background: transparent;
 }
 
+#quiz-container {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
 /* Элементы квиза */
 .quiz-question {
   font-size: 1.3em;
@@ -74,6 +80,12 @@ body::before {
   color: white;
   width: 100%;
   margin-top: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.quiz-button:hover {
+  background-color: #4752C4;
 }
 
 /* Стили для выбора наставника */
@@ -104,6 +116,13 @@ body::before {
   color: white;
   border: none;
   text-align: left;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.style-button.selected {
+  background: rgba(76, 175, 80, 0.9);
+  box-shadow: 0 0 0 2px white;
 }
 
 .style-info-button {
@@ -118,6 +137,12 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.style-info-button:hover {
+  transform: scale(1.1);
 }
 
 .style-tooltip {
@@ -128,6 +153,7 @@ body::before {
   border-radius: 10px;
   margin-top: 5px;
   width: 100%;
+  line-height: 1.5;
 }
 
 /* Чат */
@@ -146,6 +172,12 @@ body::before {
   max-width: 80%;
   word-wrap: break-word;
   line-height: 1.4;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .user-message {
@@ -174,6 +206,7 @@ body::before {
   border-radius: 25px;
   border: none;
   background: rgba(255,255,255,0.95);
+  font-size: 1em;
 }
 
 #chat-form button {
@@ -184,4 +217,26 @@ body::before {
   color: white;
   border: none;
   font-size: 1.2em;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#chat-form button:hover {
+  background-color: #4752C4;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+  #quiz-container, #chat-container {
+    padding: 15px;
+  }
+  
+  .chat-message {
+    max-width: 85%;
+  }
+  
+  .style-tooltip {
+    font-size: 0.9em;
+    padding: 10px;
+  }
 }

@@ -5,7 +5,7 @@ class Chat {
   }
 
   async init(userData, skipGreeting = false) {
-    this.userData = userData;
+    this.userData = userData || {};
     this.userId = ApiService.getUserId();
     
     document.getElementById('chat-container').style.display = 'flex';
@@ -17,7 +17,7 @@ class Chat {
     const button = chatForm.querySelector('button');
 
     input.disabled = false;
-    button.disabled = true;
+    button.disabled = input.value.trim() === '';
 
     input.addEventListener('input', () => {
       button.disabled = input.value.trim() === '';
@@ -33,7 +33,7 @@ class Chat {
       button.disabled = true;
     };
 
-    if (this.userData.last_messages && this.userData.last_messages.length > 0) {
+    if (this.userData.last_messages?.length > 0) {
       this.restoreChatHistory();
     } else if (!skipGreeting) {
       await this.sendGreetingMessage();
@@ -59,31 +59,31 @@ class Chat {
       this.updateMessageHistory(text, reply);
       await ApiService.saveQuizData(this.userId, this.userData);
     } catch (error) {
-      aiMsgDiv.textContent = 'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.';
-      console.error('Ошибка при отправке сообщения:', error);
+      console.error('Chat error:', error);
+      aiMsgDiv.textContent = 'Произошла ошибка. Пожалуйста, попробуйте еще раз.';
     }
   }
 
   async getAIResponse(text) {
-  const isFirst = !this.hasSentGreeting;
-  
-  if (isFirst) {
-    this.hasSentGreeting = true;
-    const prompt = Prompts.getGreetingPrompt(this.userData);
-    return await ApiService.sendMessageToAI(prompt);
-  } else {
-    const history = this.userData.last_messages || [];
-    const prompt = Prompts.getChatPrompt(this.userData, text, history);
-    return await ApiService.sendMessageToAI(prompt);
+    const isFirst = !this.hasSentGreeting;
+    
+    if (isFirst) {
+      this.hasSentGreeting = true;
+      const prompt = Prompts.getGreetingPrompt(this.userData);
+      return await ApiService.sendMessageToAI(prompt);
+    } else {
+      const history = this.userData.last_messages || [];
+      const prompt = Prompts.getChatPrompt(this.userData, text, history);
+      return await ApiService.sendMessageToAI(prompt);
+    }
   }
-}
 
   updateMessageHistory(userText, aiText) {
     this.userData.last_messages = [
-      ...(this.userData.last_messages || []), 
-      { role: 'user', text: userText }, 
+      ...(this.userData.last_messages || []),
+      { role: 'user', text: userText },
       { role: 'ai', text: aiText }
-    ].slice(-15);
+    ].slice(-6); // Храним последние 3 пары сообщений
   }
 
   async sendGreetingMessage() {
@@ -103,8 +103,8 @@ class Chat {
       this.userData.last_messages = [{ role: 'ai', text: reply }];
       await ApiService.saveQuizData(this.userId, this.userData);
     } catch (error) {
-      aiMsgDiv.textContent = 'Привет! Давайте начнем наше путешествие в мир бега!';
-      console.error('Ошибка при отправке приветствия:', error);
+      console.error('Greeting error:', error);
+      aiMsgDiv.textContent = 'Привет! Давайте начнем ваше путешествие в мир бега!';
     }
   }
 
@@ -112,7 +112,7 @@ class Chat {
     const messagesDiv = document.getElementById('messages');
     messagesDiv.innerHTML = '';
     
-    this.userData.last_messages.forEach(msg => {
+    (this.userData.last_messages || []).forEach(msg => {
       const msgDiv = document.createElement('div');
       msgDiv.className = `chat-message ${msg.role === 'user' ? 'user-message' : 'ai-message'}`;
       msgDiv.textContent = msg.text;
