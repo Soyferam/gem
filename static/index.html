@@ -158,7 +158,8 @@
     }
 
     .style-button.selected {
-      background-color: #4CAF50;
+      background-color: #4CAF50 !important;
+      box-shadow: 0 0 0 2px white;
     }
 
     .style-info-button {
@@ -536,20 +537,19 @@ function showStep(i) {
 }
 
 function selectStyle(style) {
-  selectedStyle = style;
-  document.getElementById('next').disabled = false;
-  
-  // Сброс выделения всех кнопок
-  const buttons = document.querySelectorAll('.style-button');
-  buttons.forEach(btn => {
-    btn.classList.remove('selected');
-  });
-  
-  // Выделение выбранной кнопки
-  const selectedButton = document.querySelector(`.style-button[data-style="${style}"]`);
-  if (selectedButton) {
-    selectedButton.classList.add('selected');
+  // Сброс предыдущего выбора
+  if (selectedStyle) {
+    const prevButton = document.querySelector(`.style-button[data-style="${selectedStyle}"]`);
+    if (prevButton) prevButton.classList.remove('selected');
   }
+  
+  // Установка нового выбора
+  selectedStyle = style;
+  const selectedButton = document.querySelector(`.style-button[data-style="${style}"]`);
+  if (selectedButton) selectedButton.classList.add('selected');
+  
+  // Активируем кнопку "Далее"
+  document.getElementById('next').disabled = false;
 }
 
 function showStyleTooltip(style) {
