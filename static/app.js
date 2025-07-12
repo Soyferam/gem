@@ -1,12 +1,16 @@
 class App {
   static async init() {
-    console.log('App initialization started'); // лог
+    console.log('App initialization started');
     
+    // Проверка фона
+    const testBg = new Image();
+    testBg.src = 'bg/default.jpg';
+    testBg.onload = () => console.log('Background image loaded');
+    testBg.onerror = () => console.error('Background image failed to load');
 
-    
     try {
-      // Добавим искусственную задержку для тестирования loader
       document.getElementById('loader').style.display = 'flex';
+
       document.getElementById('loader').textContent = 'Загрузка Duco AI...';
       
       await new Promise(resolve => setTimeout(resolve, 1000)); // 1 сек задержка
@@ -42,9 +46,10 @@ class App {
     try {
       const data = await ApiService.fetchUserData(userId);
       return data?.data || null;
-    } catch (error) {
-      console.error('Error checking user data:', error);
-      return null;
+     } catch (error) {
+      console.error('Initialization error:', error);
+      document.body.style.backgroundColor = '#5865F2'; // Fallback
+      document.getElementById('loader').textContent = 'Ошибка загрузки';
     }
   }
 }
