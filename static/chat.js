@@ -65,19 +65,28 @@ class Chat {
   }
 
   async getAIResponse(text) {
-    const isFirst = !this.hasSentGreeting;
-    const prompt = Prompts.getChatPrompt(this.userData, text, isFirst);
+  const isFirst = !this.hasSentGreeting;
+  let prompt;
+  
+  if (isFirst) {
+    prompt = Prompts.getGreetingPrompt(this.userData);
     this.hasSentGreeting = true;
-    return await ApiService.sendMessageToAI(prompt);
+  } else {
+    const history = this.userData.last_messages || [];
+    prompt = Prompts.getChatPrompt(this.userData, text, history);
   }
+  
+  return await ApiService.sendMessageToAI(prompt);
+}
 
   updateMessageHistory(userText, aiText) {
-    this.userData.last_messages = [
-      ...(this.userData.last_messages || []), 
-      { role: 'user', text: userText }, 
-      { role: 'ai', text: aiText }
-    ].slice(-15);
-  }
+  // Ограничиваем историю последними 15ю сообщениями 
+  this.userData.last_messages = [
+    ...(this.userData.last_messages || []), 
+    { role: 'user', text: userText }, 
+    { role: 'ai', text: aiText }
+  ].slice(-4);
+}
 
   async sendGreetingMessage() {
     const messagesDiv = document.getElementById('messages');
