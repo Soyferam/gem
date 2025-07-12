@@ -7,10 +7,11 @@ class Chat {
   async init(userData, skipGreeting = false) {
     this.userData = userData;
     this.userId = ApiService.getUserId();
-    
+
+    // Показываем контейнер чата и фон
     document.getElementById('chat-container').style.display = 'flex';
     this.setBackgroundImage(this.userData.coaching_style);
-    
+
     const messagesDiv = document.getElementById('messages');
     const chatForm = document.getElementById('chat-form');
     const input = document.getElementById('user-input');
@@ -19,6 +20,7 @@ class Chat {
     input.disabled = false;
     button.disabled = true;
 
+    // Обработка нажатий
     input.addEventListener('input', () => {
       button.disabled = input.value.trim() === '';
     });
@@ -33,6 +35,7 @@ class Chat {
       button.disabled = true;
     };
 
+    // Если есть история — восстановить
     if (this.userData.last_messages && this.userData.last_messages.length > 0) {
       this.restoreChatHistory();
     } else if (!skipGreeting) {
@@ -45,7 +48,7 @@ class Chat {
     userMsgDiv.className = 'chat-message user-message';
     userMsgDiv.textContent = text;
     messagesDiv.appendChild(userMsgDiv);
-    
+
     const aiMsgDiv = document.createElement('div');
     aiMsgDiv.className = 'chat-message ai-message';
     aiMsgDiv.textContent = '...';
@@ -55,7 +58,7 @@ class Chat {
     try {
       const reply = await this.getAIResponse(text);
       this.typeText(aiMsgDiv, reply);
-      
+
       this.updateMessageHistory(text, reply);
       await ApiService.saveQuizData(this.userId, this.userData);
     } catch (error) {
@@ -73,8 +76,8 @@ class Chat {
 
   updateMessageHistory(userText, aiText) {
     this.userData.last_messages = [
-      ...(this.userData.last_messages || []), 
-      { role: 'user', text: userText }, 
+      ...(this.userData.last_messages || []),
+      { role: 'user', text: userText },
       { role: 'ai', text: aiText }
     ].slice(-15);
   }
@@ -91,7 +94,7 @@ class Chat {
       const reply = await ApiService.sendMessageToAI(
         Prompts.getGreetingPrompt(this.userData)
       );
-      
+
       this.typeText(aiMsgDiv, reply);
       this.userData.last_messages = [{ role: 'ai', text: reply }];
       await ApiService.saveQuizData(this.userId, this.userData);
@@ -104,14 +107,14 @@ class Chat {
   restoreChatHistory() {
     const messagesDiv = document.getElementById('messages');
     messagesDiv.innerHTML = '';
-    
-    this.userData.last_messages.forEach(msg => {
+
+    (this.userData.last_messages || []).forEach(msg => {
       const msgDiv = document.createElement('div');
       msgDiv.className = `chat-message ${msg.role === 'user' ? 'user-message' : 'ai-message'}`;
       msgDiv.textContent = msg.text;
       messagesDiv.appendChild(msgDiv);
     });
-    
+
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
@@ -135,6 +138,7 @@ class Chat {
   }
 }
 
+// Экспорт в глобальный scope
 window.chat = new Chat();
 window.startChat = (skipGreeting = false, localQuizData = null) => {
   chat.init(localQuizData, skipGreeting);

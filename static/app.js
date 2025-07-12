@@ -5,16 +5,20 @@ class App {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
       }
-      
+
       const userId = ApiService.getUserId();
       const userData = await this.checkUserData(userId);
-      
+
+      document.getElementById('loader').style.display = 'none';
+
       if (!userData || !userData.name || !userData.running_frequency) {
-        document.getElementById('loader').style.display = 'none';
+        // Показываем квиз
         document.getElementById('quiz-container').style.display = 'flex';
         quiz.init();
       } else {
-        await startChat(true, userData);
+        // Показываем чат
+        document.getElementById('chat-container').style.display = 'flex';
+        window.startChat(true, userData);
       }
     } catch (error) {
       console.error('Ошибка при инициализации:', error);
