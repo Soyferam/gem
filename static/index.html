@@ -55,7 +55,7 @@
     }
 
     #quiz-container h3 {
-      font-size: 1.4em;
+      font-size: 1.2em;
       color: #fff;
       margin-bottom: 1em;
       max-width: 90%;
@@ -129,13 +129,6 @@
       margin-bottom: 1em;
     }
 
-    .style-title {
-      color: #fff;
-      font-size: 1.2em;
-      margin-bottom: 15px;
-      text-align: center;
-    }
-
     .style-buttons-container {
       display: flex;
       flex-direction: column;
@@ -148,10 +141,11 @@
       align-items: center;
       gap: 10px;
       width: 100%;
+      justify-content: flex-end;
     }
 
     .style-button {
-      flex: 1;
+      width: 200px;
       padding: 14px 20px;
       font-size: 1.1em;
       border: none;
@@ -164,7 +158,7 @@
     }
 
     .style-button.selected {
-      background-color: #4752C4;
+      background-color: #4CAF50;
     }
 
     .style-info-button {
@@ -343,7 +337,7 @@ const quizSteps = [
   },
   { 
     key: 'coaching_style', 
-    text: (name, data) => `Спасибо за честные ответы, ${name}! Это очень поможет будущему AI-коучу тебя понимать. И последний, очень важный вопрос: представь, что AI-коуч – это твой персональный мотиватор для бега. Какой стиль общения тебе был бы ближе всего?`,
+    text: (name, data) => `Спасибо за честные ответы, ${name}! Это поможет AI-коучу тебя понимать. Последний вопрос: представь, что AI-коуч – это твой персональный мотиватор для бега. Какой стиль общения тебе ближе?`,
     type: 'custom-select',
     options: Object.keys(coachingStyles)
   }
@@ -464,7 +458,6 @@ function showStep(i) {
   else if (step.type === 'custom-select') {
     inputHtml = `
       <div class="style-select-container">
-        <div class="style-title">Выберите стиль вашего коуча</div>
         <div class="style-buttons-container">
           ${step.options.map(style => `
             <div>
