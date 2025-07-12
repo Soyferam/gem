@@ -65,11 +65,18 @@ class Chat {
   }
 
   async getAIResponse(text) {
-    const isFirst = !this.hasSentGreeting;
-    const prompt = Prompts.getChatPrompt(this.userData, text, isFirst);
+  const isFirst = !this.hasSentGreeting;
+  
+  if (isFirst) {
     this.hasSentGreeting = true;
+    const prompt = Prompts.getGreetingPrompt(this.userData);
+    return await ApiService.sendMessageToAI(prompt);
+  } else {
+    const history = this.userData.last_messages || [];
+    const prompt = Prompts.getChatPrompt(this.userData, text, history);
     return await ApiService.sendMessageToAI(prompt);
   }
+}
 
   updateMessageHistory(userText, aiText) {
     this.userData.last_messages = [

@@ -223,25 +223,22 @@ class Quiz {
   }
 
   async finishQuiz() {
-    document.getElementById('quiz-container').style.display = 'none';
-    document.getElementById('loader').style.display = 'flex';
+  document.getElementById('quiz-container').style.display = 'none';
+  document.getElementById('loader').style.display = 'flex';
+  
+  try {
+    this.quizData.last_messages = [];
+    await ApiService.saveQuizData(this.userId, this.quizData);
     
-    try {
-      this.quizData.last_messages = [];
-      this.quizData.last_greet_ts = new Date().toISOString();
-      this.quizData.signup_date = new Date().toISOString();
-      
-      await ApiService.saveQuizData(this.userId, this.quizData);
-      
-      document.getElementById('chat-container').style.display = 'flex';
-      document.getElementById('loader').style.display = 'none';
-      
-      window.startChat(false, this.quizData);
-    } catch (error) {
-      console.error('Ошибка при завершении квиза:', error);
-      document.getElementById('loader').textContent = 'Ошибка загрузки. Пожалуйста, попробуйте позже.';
-    }
+    document.getElementById('chat-container').style.display = 'flex';
+    document.getElementById('loader').style.display = 'none';
+    
+    window.startChat(false, this.quizData);
+  } catch (error) {
+    console.error('Quiz finish error:', error);
+    document.getElementById('loader').textContent = 'Ошибка загрузки чата';
   }
+}
 }
 
 window.quiz = new Quiz();
