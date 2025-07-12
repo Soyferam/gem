@@ -76,8 +76,9 @@
     }
 
     #quiz-container textarea {
-      min-height: 100px;
+      min-height: 60px; /* Уменьшил высоту поля "Другое" */
       resize: vertical;
+      box-sizing: border-box;
     }
 
     #quiz-container button {
@@ -292,11 +293,15 @@ function setBackgroundImage(style) {
 
 function typeText(el, text, speed = 20) {
   let i = 0;
+  el.textContent = ''; // Очищаем перед началом печати
   const interval = setInterval(() => {
-    el.textContent += text[i];
-    el.parentElement.scrollTop = el.parentElement.scrollHeight;
-    i++;
-    if (i >= text.length) clearInterval(interval);
+    if (i < text.length) {
+      el.textContent += text[i];
+      el.parentElement.scrollTop = el.parentElement.scrollHeight;
+      i++;
+    } else {
+      clearInterval(interval);
+    }
   }, speed);
 }
 
@@ -449,16 +454,43 @@ async function finishQuiz() {
     const saveResult = await saveQuizData(quizData);
     console.log('Данные сохранены:', saveResult);
     
-    // Прямая инициализация чата без ожидания
+    // Прямая инициализация чата
     document.getElementById('chat-container').style.display = 'flex';
     document.getElementById('loader').style.display = 'none';
     
-    // Инициализация чата с новыми данными
+    // Загрузка истории сообщений
+    const userData = await fetchUserData();
+    if (userData && userData.last_messages) {
+      quizData.last_messages = userData.last_messages;
+    }
+    
     initChat(quizData);
+    
+    // Отправка приветственного сообщения
+    if (quizData.last_messages.length === 0) {
+      sendGreetingMessage();
+    } else {
+      // Восстановление истории сообщений
+      restoreChatHistory();
+    }
   } catch (error) {
     console.error('Ошибка при завершении квиза:', error);
     document.getElementById('loader').textContent = 'Ошибка загрузки. Пожалуйста, попробуйте позже.';
   }
+}
+
+function restoreChatHistory() {
+  const messagesDiv = document.getElementById('messages');
+  messagesDiv.innerHTML = '';
+  
+  quizData.last_messages.forEach(msg => {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `msg ${msg.role === 'user' ? 'user' : 'ai'}`;
+    msgDiv.textContent = msg.text;
+    messagesDiv.appendChild(msgDiv);
+  });
+  
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 function initChat(userData) {
@@ -470,7 +502,6 @@ function initChat(userData) {
   quizData = userData;
   setBackgroundImage(quizData.coaching_style);
 
-  messagesDiv.innerHTML = '';
   input.disabled = false;
   button.disabled = true;
 
@@ -478,57 +509,73 @@ function initChat(userData) {
     button.disabled = input.value.trim() === '';
   });
 
-  // Отправка первого приветственного сообщения
-  sendGreetingMessage();
-
   chatForm.onsubmit = async (e) => {
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
 
-    addMessage(text, 'user');
+    // Добавляем сообщение пользователя
+    const userMsgDiv = document.createElement('div');
+    userMsgDiv.className = 'msg user';
+    userMsgDiv.textContent = text;
+    messagesDiv.appendChild(userMsgDiv);
+    
     input.value = '';
     button.disabled = true;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    const typing = addMessage('...', 'ai');
-    
+    // Добавляем индикатор набора сообщения ИИ
+    const aiMsgDiv = document.createElement('div');
+    aiMsgDiv.className = 'msg ai';
+    aiMsgDiv.textContent = '...';
+    messagesDiv.appendChild(aiMsgDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
     try {
       const reply = await sendMessageToAI(text);
-      typing.textContent = reply;
-
-      const updated = [...(quizData.last_messages || []), 
-                      { role: 'user', text }, 
-                      { role: 'ai', text: reply }].slice(-15);
-      quizData.last_messages = updated;
+      
+      // Анимированный вывод ответа ИИ
+      typeText(aiMsgDiv, reply);
+      
+      // Обновляем историю сообщений
+      const updatedMessages = [
+        ...(quizData.last_messages || []), 
+        { role: 'user', text }, 
+        { role: 'ai', text: reply }
+      ].slice(-15); // Ограничиваем историю 15 последними сообщениями
+      
+      quizData.last_messages = updatedMessages;
+      
+      // Сохраняем обновленные данные
       await saveQuizData(quizData);
     } catch (error) {
-      typing.textContent = 'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.';
+      aiMsgDiv.textContent = 'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.';
       console.error('Ошибка при отправке сообщения:', error);
     }
   };
 }
 
-function addMessage(text, role) {
-  const messagesDiv = document.getElementById('messages');
-  const msg = document.createElement('div');
-  msg.className = `msg ${role}`;
-  msg.textContent = text;
-  messagesDiv.appendChild(msg);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  return msg;
-}
-
 async function sendGreetingMessage() {
-  const typing = addMessage('...', 'ai');
+  const messagesDiv = document.getElementById('messages');
   
+  // Добавляем индикатор набора сообщения ИИ
+  const aiMsgDiv = document.createElement('div');
+  aiMsgDiv.className = 'msg ai';
+  aiMsgDiv.textContent = '...';
+  messagesDiv.appendChild(aiMsgDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
   try {
     const reply = await sendMessageToAI('Привет! Пользователь прошёл квиз, начни беседу.', true);
-    typing.textContent = reply;
-
+    
+    // Анимированный вывод приветственного сообщения
+    typeText(aiMsgDiv, reply);
+    
+    // Обновляем историю сообщений
     quizData.last_messages = [{ role: 'ai', text: reply }];
     await saveQuizData(quizData);
   } catch (error) {
-    typing.textContent = 'Привет! Давайте начнем наше путешествие в мир бега!';
+    aiMsgDiv.textContent = 'Привет! Давайте начнем наше путешествие в мир бега!';
     console.error('Ошибка при отправке приветствия:', error);
   }
 }
@@ -546,12 +593,18 @@ async function startChat(skipGreeting = false, localQuizData = null) {
       return showStep(0);
     }
 
+    quizData = userData;
+    setBackgroundImage(quizData.coaching_style);
+
     document.getElementById('chat-container').style.display = 'flex';
     document.getElementById('loader').style.display = 'none';
     
     initChat(userData);
     
-    if (!skipGreeting && (!userData.last_messages || userData.last_messages.length === 0)) {
+    // Восстановление истории сообщений
+    if (userData.last_messages && userData.last_messages.length > 0) {
+      restoreChatHistory();
+    } else if (!skipGreeting) {
       sendGreetingMessage();
     }
   } catch (error) {
