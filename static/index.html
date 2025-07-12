@@ -65,17 +65,35 @@
       background: rgba(208, 240, 255, 0.9);
       align-self: flex-end;
     }
-  #chat-form input {
-    flex-grow: 1; border-radius: 20px; padding: 10px; border: none; font-size: 1em;
-    background: rgba(255,255,255,0.9); transition: all 0.3s ease;
-  }
-  #chat-form button {
-    border: none; background-color: #5865F2; color: white; border-radius: 50%;
-    width: 44px; height: 44px; font-size: 1.2em; transition: all 0.3s ease;
-  }
-  #chat-form button:disabled {
-    background: #ccc;
-  }
+  #chat-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    #chat-form input {
+      flex-grow: 1;
+      border-radius: 20px;
+      padding: 10px;
+      border: none;
+      font-size: 1em;
+      background: rgba(255,255,255,0.9);
+      transition: all 0.3s ease;
+    }
+
+    #chat-form button {
+      border: none;
+      background-color: #5865F2;
+      color: white;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2em;
+      transition: all 0.3s ease;
+    }
+
+    #chat-form button:disabled {
+      background: #ccc;
+    }
 </style>
 </head>
 <body>
