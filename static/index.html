@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Duco AI</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="styles.css">
@@ -13,16 +13,25 @@
   <div id="chat-container" style="display:none;">
     <div id="messages"></div>
     <form id="chat-form">
-      <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required disabled />
+      <input type="text" id="user-input" placeholder="Ваше сообщение..." autocomplete="off" required disabled>
       <button type="submit" disabled>➤</button>
     </form>
   </div>
 
+  <!-- Важно соблюдать порядок подключения! -->
   <script src="config.js"></script>
   <script src="api.js"></script>
   <script src="prompts.js"></script>
   <script src="quiz.js"></script>
   <script src="chat.js"></script>
   <script src="app.js"></script>
+  
+  <script>
+    // Инициализация после полной загрузки страницы
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM fully loaded');
+      App.init();
+    });
+  </script>
 </body>
 </html>
