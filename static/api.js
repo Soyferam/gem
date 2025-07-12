@@ -1,18 +1,19 @@
 const SHEETS_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/sheet';
 const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
-const getUserId = () => {
+function getUserId() {
   try {
-    return Telegram.WebApp.initDataUnsafe.user?.id?.toString() || 'test_user';
-  } catch (e) {
+    return window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || 'test_user';
+  } catch {
     return 'test_user';
   }
-};
+}
 
 async function fetchUserData() {
   const user_id = getUserId();
   const res = await fetch(`${SHEETS_API_URL}?user_id=${user_id}`);
-  return await res.json();
+  const json = await res.json();
+  return json;
 }
 
 async function saveQuizData(data) {
@@ -35,8 +36,3 @@ async function sendMessageToAI(prompt) {
   const json = await res.json();
   return json?.response || 'Ошибка от AI';
 }
-
-window.fetchUserData = fetchUserData;
-window.saveQuizData = saveQuizData;
-window.sendMessageToAI = sendMessageToAI;
-window.getUserId = getUserId;
