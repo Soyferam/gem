@@ -76,7 +76,8 @@
     }
 
     #quiz-container textarea {
-      min-height: 60px; /* Уменьшил высоту поля "Другое" */
+      min-height: 50px;
+      max-height: 100px;
       resize: vertical;
       box-sizing: border-box;
     }
@@ -121,6 +122,34 @@
 
     #quiz-container select option[disabled][selected] {
       display: none;
+    }
+
+    .style-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .style-info-btn {
+      background: none;
+      border: none;
+      color: #5865F2;
+      font-weight: bold;
+      font-size: 1.2em;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    .style-tooltip {
+      display: none;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 5px;
+      font-size: 0.9em;
     }
 
     #messages {
@@ -200,6 +229,14 @@ const GEMINI_API_URL = 'https://cold-credit-3c5d.arsivals.workers.dev/gemini';
 
 let userId = 'test_user';
 let quizData = {};
+let hasSentGreeting = false;
+
+const coachingStyles = {
+  'Железный Наставник': 'Строгий, но справедливый тренер. Будет держать вас в тонусе, но с заботой о вашем прогрессе.',
+  'Энерджайзер-Зажигалка': 'Позитивный и заряжающий энергией. Поможет найти мотивацию даже в самые ленивые дни.',
+  'Спокойный Мудрец': 'Мудрый и поддерживающий. Даст советы и поможет осознать важность регулярных тренировок.',
+  'АБСОЛЮТНЫЙ ДОМИНАТОР': 'Жесткий и требовательный (экспериментальный). Только для тех, кто готов к максимальной дисциплине.'
+};
 
 const quizSteps = [
   { 
@@ -264,15 +301,9 @@ const quizSteps = [
   },
   { 
     key: 'coaching_style', 
-    text: (name, data) => `Спасибо за честные ответы, ${name}! Это очень поможет будущему AI-коучу тебя понимать. И последний, очень важный вопрос: представь, что AI-коуч – это твой персональный мотиватор для бега. Какой стиль общения тебе был бы ближе всего? Я могу быть:`,
-    type: 'select',
-    options: [
-      {value: 'Железный Наставник', text: 'Железный Наставник - строгий, но справедливый тренер'},
-      {value: 'Энерджайзер-Зажигалка', text: 'Энерджайзер-Зажигалка - позитивный и заряжающий энергией'},
-      {value: 'Спокойный Мудрец', text: 'Спокойный Мудрец - мудрый и поддерживающий'},
-      {value: 'АБСОЛЮТНЫЙ ДОМИНАТОР', text: 'АБСОЛЮТНЫЙ ДОМИНАТОР - жесткий и требовательный (экспериментальный)'}
-    ],
-    placeholder: 'Выбрать стиль'
+    text: (name, data) => `Спасибо за честные ответы, ${name}! Это очень поможет будущему AI-коучу тебя понимать. И последний, очень важный вопрос: представь, что AI-коуч – это твой персональный мотиватор для бега. Какой стиль общения тебе был бы ближе всего?`,
+    type: 'custom-select',
+    options: Object.keys(coachingStyles)
   }
 ];
 
@@ -293,7 +324,7 @@ function setBackgroundImage(style) {
 
 function typeText(el, text, speed = 20) {
   let i = 0;
-  el.textContent = ''; // Очищаем перед началом печати
+  el.textContent = '';
   const interval = setInterval(() => {
     if (i < text.length) {
       el.textContent += text[i];
@@ -327,11 +358,14 @@ async function sendMessageToAI(userMessage, isFirst = false) {
   history.forEach(m => {
     prompt += (m.role === 'user' ? 'Пользователь: ' : 'AI: ') + m.text + '\n';
   });
-  if (isFirst) {
+  
+  if (isFirst && !hasSentGreeting) {
     prompt += `Ответь от мужского имени. Поздравь что он вместе с Duco AI. Задай полезные и воодушевляющие вопросы: когда планируешь начать бегать? где хочешь бегать (улица, стадион)? какие у тебя цели — вес, форма, дисциплина? Пиши дружелюбно, коротко (2-3 предложения).`;
+    hasSentGreeting = true;
   } else {
     prompt += 'Ответь кратко от мужского имени, понятно и с заботой. Предложи что-то. Раскрой его мысль. Не больше 4-5 предложений.';
   }
+  
   const res = await fetch(GEMINI_API_URL, {
     method: 'POST',
     body: JSON.stringify({ prompt }),
@@ -379,9 +413,32 @@ function showStep(i) {
         `).join('')}
         ${step.otherOption ? `
           <div style="margin-top: 10px;">
-            <input type="text" id="other-input" placeholder="Другое (напишите свой вариант)" style="width: 100%;">
+            <input type="text" id="other-input" placeholder="Другое (напишите свой вариант)" style="width: 100%; padding: 10px; box-sizing: border-box;">
           </div>
         ` : ''}
+      </div>
+    `;
+  }
+  else if (step.type === 'custom-select') {
+    inputHtml = `
+      <select id="input" required style="width: 100%;">
+        <option value="" disabled selected>Выбрать стиль</option>
+        ${step.options.map(style => `
+          <option value="${style}">${style}</option>
+        `).join('')}
+      </select>
+      <div style="margin-top: 15px; text-align: left;">
+        ${step.options.map(style => `
+          <div style="margin-bottom: 10px;">
+            <div class="style-option">
+              <span>${style}</span>
+              <button class="style-info-btn" onclick="showStyleTooltip('${style}')">i</button>
+            </div>
+            <div id="tooltip-${style}" class="style-tooltip">
+              ${coachingStyles[style]}
+            </div>
+          </div>
+        `).join('')}
       </div>
     `;
   }
@@ -389,7 +446,7 @@ function showStep(i) {
   container.innerHTML += inputHtml + `<button id="next" ${step.type === 'checkbox' ? 'disabled' : ''}>Далее</button>`;
   
   const nextBtn = document.getElementById('next');
-  const input = step.type === 'checkbox' ? null : document.getElementById('input');
+  const input = step.type === 'checkbox' || step.type === 'custom-select' ? null : document.getElementById('input');
   
   if (step.type === 'checkbox') {
     const checkboxes = container.querySelectorAll('input[type="checkbox"]');
@@ -426,6 +483,8 @@ function showStep(i) {
         if (otherVal) selected.push(otherVal);
       }
       val = selected.join(', ');
+    } else if (step.type === 'custom-select') {
+      val = document.getElementById('input').value.trim();
     } else {
       val = input.value.trim();
     }
@@ -442,6 +501,11 @@ function showStep(i) {
   };
 }
 
+function showStyleTooltip(style) {
+  const tooltip = document.getElementById(`tooltip-${style}`);
+  tooltip.style.display = tooltip.style.display === 'block' ? 'none' : 'block';
+}
+
 async function finishQuiz() {
   document.getElementById('quiz-container').style.display = 'none';
   document.getElementById('loader').style.display = 'flex';
@@ -454,11 +518,9 @@ async function finishQuiz() {
     const saveResult = await saveQuizData(quizData);
     console.log('Данные сохранены:', saveResult);
     
-    // Прямая инициализация чата
     document.getElementById('chat-container').style.display = 'flex';
     document.getElementById('loader').style.display = 'none';
     
-    // Загрузка истории сообщений
     const userData = await fetchUserData();
     if (userData && userData.last_messages) {
       quizData.last_messages = userData.last_messages;
@@ -466,11 +528,9 @@ async function finishQuiz() {
     
     initChat(quizData);
     
-    // Отправка приветственного сообщения
     if (quizData.last_messages.length === 0) {
       sendGreetingMessage();
     } else {
-      // Восстановление истории сообщений
       restoreChatHistory();
     }
   } catch (error) {
@@ -514,7 +574,6 @@ function initChat(userData) {
     const text = input.value.trim();
     if (!text) return;
 
-    // Добавляем сообщение пользователя
     const userMsgDiv = document.createElement('div');
     userMsgDiv.className = 'msg user';
     userMsgDiv.textContent = text;
@@ -524,7 +583,6 @@ function initChat(userData) {
     button.disabled = true;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    // Добавляем индикатор набора сообщения ИИ
     const aiMsgDiv = document.createElement('div');
     aiMsgDiv.className = 'msg ai';
     aiMsgDiv.textContent = '...';
@@ -534,19 +592,15 @@ function initChat(userData) {
     try {
       const reply = await sendMessageToAI(text);
       
-      // Анимированный вывод ответа ИИ
       typeText(aiMsgDiv, reply);
       
-      // Обновляем историю сообщений
       const updatedMessages = [
         ...(quizData.last_messages || []), 
         { role: 'user', text }, 
         { role: 'ai', text: reply }
-      ].slice(-15); // Ограничиваем историю 15 последними сообщениями
+      ].slice(-15);
       
       quizData.last_messages = updatedMessages;
-      
-      // Сохраняем обновленные данные
       await saveQuizData(quizData);
     } catch (error) {
       aiMsgDiv.textContent = 'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.';
@@ -558,7 +612,6 @@ function initChat(userData) {
 async function sendGreetingMessage() {
   const messagesDiv = document.getElementById('messages');
   
-  // Добавляем индикатор набора сообщения ИИ
   const aiMsgDiv = document.createElement('div');
   aiMsgDiv.className = 'msg ai';
   aiMsgDiv.textContent = '...';
@@ -568,10 +621,8 @@ async function sendGreetingMessage() {
   try {
     const reply = await sendMessageToAI('Привет! Пользователь прошёл квиз, начни беседу.', true);
     
-    // Анимированный вывод приветственного сообщения
     typeText(aiMsgDiv, reply);
     
-    // Обновляем историю сообщений
     quizData.last_messages = [{ role: 'ai', text: reply }];
     await saveQuizData(quizData);
   } catch (error) {
@@ -601,7 +652,6 @@ async function startChat(skipGreeting = false, localQuizData = null) {
     
     initChat(userData);
     
-    // Восстановление истории сообщений
     if (userData.last_messages && userData.last_messages.length > 0) {
       restoreChatHistory();
     } else if (!skipGreeting) {
