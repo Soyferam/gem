@@ -1,9 +1,7 @@
 class App {
   static async init() {
     try {
-      document.getElementById('loader').style.display = 'flex';
-      
-      if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+      if (window.Telegram && Telegram.WebApp?.initDataUnsafe?.user?.id) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
       }
@@ -11,32 +9,25 @@ class App {
       const userId = ApiService.getUserId();
       const userData = await this.checkUserData(userId);
       
-      if (!userData || !userData.name) {
+      if (!userData || !userData.name || !userData.running_frequency) {
         document.getElementById('loader').style.display = 'none';
         document.getElementById('quiz-container').style.display = 'flex';
         quiz.init();
       } else {
-        // Проверяем, есть ли история сообщений
-        if (userData.last_messages?.length > 0) {
-          document.getElementById('loader').style.display = 'none';
-          await startChat(true, userData);
-        } else {
-          document.getElementById('loader').style.display = 'none';
-          await startChat(false, userData);
-        }
+        await startChat(true, userData);
       }
     } catch (error) {
-      console.error('App init error:', error);
+      console.error('Ошибка при инициализации:', error);
       document.getElementById('loader').textContent = 'Ошибка загрузки. Пожалуйста, обновите страницу.';
     }
   }
 
   static async checkUserData(userId) {
     try {
-      const response = await ApiService.fetchUserData(userId);
-      return response?.data || null;
+      const data = await ApiService.fetchUserData(userId);
+      return data?.data || null;
     } catch (error) {
-      console.error('Fetch user error:', error);
+      console.error('Error checking user data:', error);
       return null;
     }
   }
