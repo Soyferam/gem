@@ -1,63 +1,141 @@
-const steps = [
-  { key: 'name', text: 'Как тебя зовут?', type: 'text' },
-  { key: 'running_frequency', text: 'Сколько раз в неделю хочешь бегать?', type: 'select', options: ['1', '2', '3', '4+'] },
-  { key: 'coaching_style', text: 'Выбери стиль общения:', type: 'select', options: ['Железный Наставник', 'Энерджайзер-Зажигалка', 'Спокойный Мудрец', 'АБСОЛЮТНЫЙ ДОМИНАТОР'] },
-  { key: 'dominant_style_consent', text: 'Подтверждаешь "ДОМИНАТОРА"?', type: 'select', options: ['нет', 'да'] }
-];
+class Chat {
+  constructor() {
+    this.messages = [];
+    this.hasSentGreeting = false;
+  }
 
-let quizData = {};
+  async init(userData, skipGreeting = false) {
+    this.userData = userData;
+    this.userId = ApiService.getUserId();
+    
+    document.getElementById('chat-container').style.display = 'flex';
+    this.setBackgroundImage(this.userData.coaching_style);
+    
+    const messagesDiv = document.getElementById('messages');
+    const chatForm = document.getElementById('chat-form');
+    const input = document.getElementById('user-input');
+    const button = chatForm.querySelector('button');
 
-function showStep(i) {
-  const st = steps[i];
-  quizContainer.innerHTML = `<h3>${st.text}</h3>`;
-  let inputHtml = st.type === 'text'
-    ? `<input id="input" required>`
-    : `<select id="input">${st.options.map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
-  quizContainer.innerHTML += inputHtml + `<button id="next">Далее</button>`;
-  document.getElementById('next').onclick = () => {
-    const val = document.getElementById('input').value.trim();
-    if (!val) return;
-    quizData[st.key] = st.key === 'dominant_style_consent' && quizData.coaching_style !== 'АБСОЛЮТНЫЙ ДОМИНАТОР' ? 'нет' : val;
-    if (i + 1 < steps.length) showStep(i + 1);
-    else finishQuiz();
-  };
-}
+    input.disabled = false;
+    button.disabled = true;
 
-async function finishQuiz() {
-  await saveQuizData(quizData);
-  quizContainer.style.display = 'none';
-  chatContainer.style.display = 'block';
-  const style = quizData.coaching_style;
-  const prompt = `Ты — ${style}. Пользователь только что прошёл квиз.\nИмя: ${quizData.name}. Хочет бегать ${quizData.running_frequency} раза(раз) в неделю.\nПриветствуй его и мотивируй в выбранном стиле. Используй только русский язык, избегай лишних символов и англицизмов.`;
-  const reply = await sendMessageToAI(prompt);
-  document.getElementById('messages').innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
-}
+    input.addEventListener('input', () => {
+      button.disabled = input.value.trim() === '';
+    });
 
-window.showStep = showStep;
-window.finishQuiz = finishQuiz;
+    chatForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
 
+      await this.handleUserMessage(text, messagesDiv);
+      input.value = '';
+      button.disabled = true;
+    };
 
-// === chat.js ===
-function startChat() {
-  quizContainer.style.display = 'none';
-  chatContainer.style.display = 'block';
+    if (this.userData.last_messages && this.userData.last_messages.length > 0) {
+      this.restoreChatHistory();
+    } else if (!skipGreeting) {
+      await this.sendGreetingMessage();
+    }
+  }
 
-  const messagesDiv = document.getElementById('messages');
-  const form = document.getElementById('chat-form');
-  const input = document.getElementById('user-input');
-
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-
-    messagesDiv.innerHTML += `<div class="msg user">👤 ${text}</div>`;
-    input.value = '';
-
-    const reply = await sendMessageToAI(text);
-    messagesDiv.innerHTML += `<div class="msg ai">🤖 ${reply}</div>`;
+  async handleUserMessage(text, messagesDiv) {
+    const userMsgDiv = document.createElement('div');
+    userMsgDiv.className = 'chat-message user-message';
+    userMsgDiv.textContent = text;
+    messagesDiv.appendChild(userMsgDiv);
+    
+    const aiMsgDiv = document.createElement('div');
+    aiMsgDiv.className = 'chat-message ai-message';
+    aiMsgDiv.textContent = '...';
+    messagesDiv.appendChild(aiMsgDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  };
+
+    try {
+      const reply = await this.getAIResponse(text);
+      this.typeText(aiMsgDiv, reply);
+      
+      this.updateMessageHistory(text, reply);
+      await ApiService.saveQuizData(this.userId, this.userData);
+    } catch (error) {
+      aiMsgDiv.textContent = 'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.';
+      console.error('Ошибка при отправке сообщения:', error);
+    }
+  }
+
+  async getAIResponse(text) {
+    const isFirst = !this.hasSentGreeting;
+    const prompt = Prompts.getChatPrompt(this.userData, text, isFirst);
+    this.hasSentGreeting = true;
+    return await ApiService.sendMessageToAI(prompt);
+  }
+
+  updateMessageHistory(userText, aiText) {
+    this.userData.last_messages = [
+      ...(this.userData.last_messages || []), 
+      { role: 'user', text: userText }, 
+      { role: 'ai', text: aiText }
+    ].slice(-15);
+  }
+
+  async sendGreetingMessage() {
+    const messagesDiv = document.getElementById('messages');
+    const aiMsgDiv = document.createElement('div');
+    aiMsgDiv.className = 'chat-message ai-message';
+    aiMsgDiv.textContent = '...';
+    messagesDiv.appendChild(aiMsgDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    try {
+      const reply = await ApiService.sendMessageToAI(
+        Prompts.getGreetingPrompt(this.userData)
+      );
+      
+      this.typeText(aiMsgDiv, reply);
+      this.userData.last_messages = [{ role: 'ai', text: reply }];
+      await ApiService.saveQuizData(this.userId, this.userData);
+    } catch (error) {
+      aiMsgDiv.textContent = 'Привет! Давайте начнем наше путешествие в мир бега!';
+      console.error('Ошибка при отправке приветствия:', error);
+    }
+  }
+
+  restoreChatHistory() {
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.innerHTML = '';
+    
+    this.userData.last_messages.forEach(msg => {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `chat-message ${msg.role === 'user' ? 'user-message' : 'ai-message'}`;
+      msgDiv.textContent = msg.text;
+      messagesDiv.appendChild(msgDiv);
+    });
+    
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  typeText(el, text, speed = 20) {
+    let i = 0;
+    el.textContent = '';
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        el.textContent += text[i];
+        el.parentElement.scrollTop = el.parentElement.scrollHeight;
+        i++;
+      } else {
+        clearInterval(interval);
+      }
+    }, speed);
+  }
+
+  setBackgroundImage(style) {
+    const url = Config.backgroundImages[style] || Config.backgroundImages.default;
+    document.body.style.setProperty('--bg-url', `url(${url})`);
+  }
 }
 
-window.startChat = startChat;
+window.chat = new Chat();
+window.startChat = (skipGreeting = false, localQuizData = null) => {
+  chat.init(localQuizData, skipGreeting);
+};
